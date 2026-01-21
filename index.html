@@ -198,11 +198,11 @@
 
         .preview-label { margin: 0; background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 6px; font-size: 9px; color: #fff; text-transform: uppercase; position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 5; pointer-events: none; border: 1px solid rgba(255,255,255,0.2); white-space: nowrap; line-height: normal; }
 
-        .mode-toggle { background: rgba(0,0,0,0.3); padding: 2px; border-radius: 30px; border: 1px solid var(--glass-border); height: 28px; display: flex; align-items: center; flex-shrink: 0; }
+        .mode-toggle { background: var(--glass-bg); padding: 2px; border-radius: 30px; border: 1px solid var(--glass-border); height: 28px; display: flex; align-items: center; flex-shrink: 0; }
         .toggle-opt { padding: 0 10px; height: 22px; display: flex; align-items: center; border-radius: 24px; cursor: pointer; font-size: 9px; font-weight: 700; color: var(--text-sec); text-transform: uppercase;}
         .toggle-opt.active { background: var(--primary); color: var(--on-primary); }
         
-        .lock-btn { height: 28px; padding: 0 10px; border-radius: 20px; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); color: var(--text-sec); cursor: pointer; font-size: 9px; font-weight: 700; text-transform: uppercase; display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+        .lock-btn { height: 28px; padding: 0 10px; border-radius: 20px; background: var(--glass-bg); border: 1px solid var(--glass-border); color: var(--text-sec); cursor: pointer; font-size: 9px; font-weight: 700; text-transform: uppercase; display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
         .lock-btn.active { background-color: #28a745 !important; color: #fff !important; border-color: #28a745 !important; }
         
         .top-btn { height: 28px; padding: 0 10px; border-radius: 20px; background: var(--glass-bg); border: 1px solid var(--glass-border); color: var(--text-main); cursor: pointer; font-size: 9px; font-weight: 700; flex-shrink: 0;}
@@ -232,7 +232,7 @@
         
         .custom-size-inputs { display:flex; gap: 5px; }
 
-        .icon-small { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; background: rgba(255,255,255,0.1); border-radius: 50%; border: 1px solid var(--glass-border); margin-left: 5px; color: var(--text-main); }
+        .icon-small { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; background: var(--glass-bg); border-radius: 50%; border: 1px solid var(--glass-border); margin-left: 5px; color: var(--text-main); }
         [data-theme="light"] .icon-small { background: rgba(0,0,0,0.05); }
         
         .icon-small.active { background-color: var(--primary) !important; color: var(--on-primary) !important; border-color:var(--primary) !important; opacity: 1; }
@@ -301,7 +301,7 @@
 
     <div id="fsGridControls">
         <button class="reset-vis-btn" onclick="resetGridVisibility()" title="Показать всё">👁</button>
-        <button id="fsZoomBtn" class="reset-vis-btn" onclick="toggleZoomPopupFS()" style="background:#555;" title="Масштаб">🔍</button>
+        <button id="fsZoomBtn" class="reset-vis-btn" onclick="toggleZoomPopupFS()" style="background:var(--glass-bg); border: 1px solid var(--glass-border);" title="Масштаб">🔍</button>
         <div id="fsZoomPopup" class="zoom-popup-unified">
             <input type="range" class="horizontal-range" id="fsGridZoom" min="3" max="200" value="100" oninput="updateGridScale(this.value)">
         </div>
