@@ -293,6 +293,24 @@
         @media print {
             body { display: none; }
         }
+/* --- АНИМАЦИЯ НАЖАТИЯ ДЛЯ ВСЕХ КНОПОК --- */
+        .btn:active,
+        .btn-action:active,
+        .btn-toggle-panel:active,
+        .icon-small:active,
+        .top-btn:active,
+        .reset-vis-btn:active,
+        .nav-btn:active,
+        .zoom-display-btn:active,
+        .lock-btn:active {
+            transform: scale(0.95); /* Легкое уменьшение при клике */
+            transition: transform 0.05s ease-out; /* Очень быстрая реакция */
+        }
+        
+        /* Плавность поворота стрелочки для разворачивающихся меню */
+        .settings-arrow {
+            transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+        }
     </style>
 </head>
 <body data-theme="dark">
