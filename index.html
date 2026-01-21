@@ -445,28 +445,28 @@
                     РАЗМЕР <span class="settings-arrow">▼</span>
                 </button>
                 <div id="sizePanel" class="panel-content">
-                    <div style="display:flex; gap:5px; margin-bottom:5px;">
-                        <select class="modern-select" id="setSize" style="margin:0;">
-                            <option value="50" selected>S (50x50)</option>
-                            <option value="75">M (75x75)</option>
-                            <option value="100">L (100x100)</option>
-                            <option value="150">XL (150x150)</option>
-                            <option value="custom">Свой размер...</option>
-                        </select>
-                        <button class="btn btn-sec" style="width:auto; padding:0 8px;" onclick="toggleBorderControl()">РАМКА</button>
-                    </div>
-                    
-                    <div id="borderControl">
-                        <div class="slider-header-compact"><span class="slider-label">Толщина рамки: <span class="val-display" id="borderWidthVal">0</span></span></div>
-                        <input type="range" id="borderWidth" min="0" max="5" value="0" oninput="updateBorderSettings()">
-                        <select class="modern-select" id="borderColor" style="margin-top:5px; padding:6px;" onchange="updateBorderSettings()"></select>
-                    </div>
-                    
-                    <div id="customSizeGroup" class="custom-size-inputs" style="display:none">
-                        <input type="number" id="customWidth" class="modern-input" placeholder="W" min="10" value="50">
-                        <input type="number" id="customHeight" class="modern-input" placeholder="H" min="10" value="50">
-                    </div>
-                </div>
+    <div style="display:flex; gap:5px; margin-bottom:5px;">
+        <select class="modern-select" id="setSize" style="margin:0;">
+            <option value="50" selected>S (50x50)</option>
+            <option value="75">M (75x75)</option>
+            <option value="100">L (100x100)</option>
+            <option value="150">XL (150x150)</option>
+            <option value="custom">Свой размер...</option>
+        </select>
+        <button id="borderBtn" class="btn btn-sec" style="width:auto; padding:0 8px; white-space: nowrap;" onclick="toggleBorderControl()">РАМКА</button>
+    </div>
+    
+    <div id="borderControl" style="display: none; margin-top: 10px; padding: 8px; background: rgba(0,0,0,0.1); border-radius: 6px;">
+        <div class="slider-header-compact"><span class="slider-label">Толщина рамки: <span class="val-display" id="borderWidthVal">0</span></span></div>
+        <input type="range" id="borderWidth" min="0" max="5" value="0" oninput="updateBorderSettings()">
+        <select class="modern-select" id="borderColor" style="margin-top:5px; padding:6px;" onchange="updateBorderSettings()"></select>
+    </div>
+    
+    <div id="customSizeGroup" class="custom-size-inputs" style="display:none; margin-top: 5px;">
+        <input type="number" id="customWidth" class="modern-input" placeholder="W" min="10" value="50">
+        <input type="number" id="customHeight" class="modern-input" placeholder="H" min="10" value="50">
+    </div>
+</div>
             </div>
 
             <div class="card">
@@ -830,7 +830,19 @@
             centroids.sort((a,b) => (a[0]+a[1]+a[2]) - (b[0]+b[1]+b[2])); currentPalette = centroids.map(c => rgbToHex(c[0], c[1], c[2]));
         }
 
-        function toggleBorderControl() { document.getElementById('borderControl').classList.toggle('show'); }
+        function toggleBorderControl() {
+    const panel = document.getElementById('borderControl');
+    const btn = document.getElementById('borderBtn');
+    
+    if (panel.style.display === 'none') {
+        panel.style.display = 'block';
+        // Добавляем класс активного состояния (цвет подстроится под тему сам)
+        btn.classList.add('btn-active-state');
+    } else {
+        panel.style.display = 'none';
+        btn.classList.remove('btn-active-state');
+    }
+}
         function updateBorderSettings() { document.getElementById('borderWidthVal').innerText = document.getElementById('borderWidth').value; finalizeMatrixWithBorder(); }
         function finalizeMatrixWithBorder() {
             if(!generatedMatrix.length) return; const bWidth = parseInt(document.getElementById('borderWidth').value); const bColorIdx = parseInt(document.getElementById('borderColor').value || 0);
