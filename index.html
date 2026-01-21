@@ -370,10 +370,13 @@
             #origBox { max-width: 25%; }
             .floating-nav { top: 60px; left: 10px; }
             
-            /* Скрываем навигацию секторов в режиме просмотра */
             #sectorNav { display: none !important; }
-            /* Показываем её только когда активна вкладка "Схема" */
             .stage.expanded-mode #sectorNav { display: block !important; }
+            
+            body.fullscreen-mode #sectorNav,
+            body.fullscreen-mode .stage.expanded-mode #sectorNav { 
+                display: none !important; 
+            }
         }
         
         body.fullscreen-mode .app-container { display: block !important; padding: 0 !important; }
