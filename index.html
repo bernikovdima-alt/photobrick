@@ -186,14 +186,15 @@
             flex: 0 0 auto;
         }
 
-        .preview-content { 
-            max-width: 100%; 
-            max-height: 65vh; 
-            border-radius: 8px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
-            object-fit: contain; 
-            pointer-events: none; 
-            display: block; 
+        .preview-content {  
+            max-width: 100%;  
+            max-height: 65vh;  
+            border-radius: 8px;  
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);  
+            object-fit: contain !important; /* Картинка всегда сохраняет пропорции */
+            display: block;  
+            pointer-events: none;
+            aspect-ratio: auto; /* Запрещает браузеру выдумывать свои пропорции */
         }
 
         .preview-label { margin: 0; background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 6px; font-size: 9px; color: #fff; text-transform: uppercase; position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 5; pointer-events: none; border: 1px solid rgba(255,255,255,0.2); white-space: nowrap; line-height: normal; }
@@ -1130,7 +1131,7 @@
                 }); 
             }); 
         }
-        function renderPaletteUI() { const c = document.getElementById('paletteContainer'); c.innerHTML = ''; currentPalette.forEach((col, i) => { const d = document.createElement('div'); const isActive = (selectedBrushIndex === i) && isPencil; const preset = document.getElementById('palettePreset').value; const isRestricted = ['bw', 'popart'].includes(preset); const isEditable = !isRestricted; d.className = 'palette-item' + (isActive ? ' active-brush' : '') + (isEditable ? ' editable' : ' disabled'); d.style.background = col; d.innerHTML = `<span class="pal-sym" style="color:${getContrastColor(col)}">${currentSymbolSet[i] || "?"}</span>`; d.onclick = (e) => { if(e.target.tagName === 'INPUT') return; if (isPencil) { selectedBrushIndex = i; renderPaletteUI(); } else { if(isEditable) { const inp = d.querySelector('input'); if(inp) inp.click(); } } }; if(isEditable) { const inp = document.createElement('input'); inp.type = 'color'; inp.value = col; inp.onclick = (e) => { if(isPencil) { e.preventDefault(); e.stopPropagation(); selectedBrushIndex = i; renderPaletteUI(); return false; } e.stopPropagation(); }; inp.oninput = (e) => { currentPalette[i] = e.target.value; d.style.background = e.target.value; drawPreview(finalMatrix[0].length, finalMatrix.length); if(document.getElementById('instructionView').style.display === 'block') drawGrid(); updateStats(); }; inp.onchange = (e) => pushHistory(); d.appendChild(inp); } c.appendChild(d); }); }
+        function renderPaletteUI() { const c = document.getElementById('paletteContainer'); c.innerHTML = ''; currentPalette.forEach((col, i) => { const d = document.createElement('div'); const isActive = (selectedBrushIndex === i) && isPencil; const preset = document.getElementById('palettePreset').value; const isRestricted = ['bw', 'popart'].includes(preset); const isEditable = !isRestricted; d.className = 'palette-item' + (isActive ? ' active-brush' : '') + (isEditable ? ' editable' : ' disabled'); d.style.background = col; d.innerHTML = `<span class="pal-sym" style="color:${getContrastColor(col)}">${currentSymbolSet[i] || "?"}</span>`; d.onclick = (e) => { if(e.target.tagName === 'INPUT') return; if (isPencil) { selectedBrushIndex = i; renderPaletteUI(); } else { if(isEditable) { const inp = d.querySelector('input'); if(inp) inp.click(); } } }; if(isEditable) { const inp = document.createElement('input'); inp.type = 'color'; inp.value = col; inp.onclick = (e) => { if(isPencil) { e.preventDefault(); e.stopPropagation(); selectedBrushIndex = i; renderPaletteUI(); return false; } e.stopPropagation(); }; inp.oninput = (e) => { e.stopPropagation(); currentPalette[i] = e.target.value; d.style.background = e.target.value; drawPreview(finalMatrix[0].length, finalMatrix.length); if(document.getElementById('instructionView').style.display === 'block') drawGrid(); updateStats(); }; inp.onchange = (e) => pushHistory(); d.appendChild(inp); } c.appendChild(d); }); }
         function hexToRgb(hex) { const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex); return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : {r:0,g:0,b:0}; }
         function toggleTheme() { const b = document.body; b.setAttribute('data-theme', b.getAttribute('data-theme')==='light'?'dark':'light'); }
         function saveProject() { if(!sourceImage) return; const data = { palette: currentPalette, aiBase: aiBasePalette, hiddenRegions: Array.from(hiddenRegions), settings: { zoom: document.getElementById('zoom').value, contrast: document.getElementById('contrast').value, brightness: document.getElementById('brightness').value, panX: document.getElementById('panX').value, panY: document.getElementById('panY').value, size: document.getElementById('setSize').value, cW: document.getElementById('customWidth').value, cH: document.getElementById('customHeight').value, cc: document.getElementById('colorCount').value, preset: document.getElementById('palettePreset').value, sharpness: document.getElementById('sharpness').value, smartBlur: document.getElementById('smartBlur').value, posterize: document.getElementById('posterize').value, usmRadius: document.getElementById('usmRadius').value }, img: sourceImage.src }; let name = prompt("Введите имя файла:", "photobrick_project"); if (name === null) return; if (!name) name = "photobrick_project"; if (!name.endsWith(".json")) name += ".json"; const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'})); a.download = name; a.click(); }
