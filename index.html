@@ -860,7 +860,33 @@
             document.addEventListener('click', (e) => { if(!document.body.classList.contains('fullscreen-mode')) return; if(window.innerWidth >= 1024) return; if(e.target.closest('#fsGridControls')) return; if(e.target.closest('#fsExitBtn')) return; });
         }
 
-        function updateGridScale(val) { const scale = val / 100; const grid = document.querySelector('#gridContainer .instruction-grid'); const intVal = Math.round(val); document.getElementById('gridZoom').value = intVal; document.getElementById('fsGridZoom').value = intVal; if(grid) { grid.style.transform = `scale(${scale})`; const container = document.getElementById('gridContainer'); container.style.width = (grid.offsetWidth * scale) + 'px'; container.style.height = (grid.offsetHeight * scale) + 'px'; } document.getElementById('zoomText').innerText = intVal + '%'; }
+        function updateGridScale(val) {
+            const scale = val / 100;
+            const intVal = Math.round(val);
+            
+            // Синхронизируем ползунки и текст
+            document.getElementById('gridZoom').value = intVal;
+            document.getElementById('fsGridZoom').value = intVal;
+            document.getElementById('zoomText').innerText = intVal + '%';
+
+            // 1. МАСШТАБ ДЛЯ СХЕМЫ (Grid)
+            const grid = document.querySelector('#gridContainer .instruction-grid');
+            if (grid) {
+                grid.style.transform = `scale(${scale})`;
+                const container = document.getElementById('gridContainer');
+                container.style.width = (grid.offsetWidth * scale) + 'px';
+                container.style.height = (grid.offsetHeight * scale) + 'px';
+            }
+
+            // 2. МАСШТАБ ДЛЯ РЕЗУЛЬТАТА (Canvas)
+            // Применяем масштаб к холсту в полноэкранном режиме
+            const mainCanvas = document.getElementById('mainCanvas');
+            if (mainCanvas) {
+                mainCanvas.style.transform = `scale(${scale})`;
+                mainCanvas.style.transformOrigin = 'center center'; // Масштаб от центра
+                mainCanvas.style.transition = 'transform 0.1s ease-out'; // Плавность
+            }
+        }
         function toggleZoomPopup() { const p = document.getElementById('zoomPopup'); const btn = document.getElementById('zoomDisplayBtn'); p.classList.toggle('show'); btn.classList.toggle('btn-active-state'); }
         document.addEventListener('click', (e) => { const p = document.getElementById('zoomPopup'); const btn = document.getElementById('zoomDisplayBtn'); if(p.classList.contains('show') && !p.contains(e.target) && !btn.contains(e.target)) { p.classList.remove('show'); btn.classList.remove('btn-active-state'); } });
         function toggleZoomPopupFS() { const z = document.getElementById('fsZoomPopup'); if(z.classList.contains('show')) { z.classList.remove('show'); document.getElementById('fsZoomBtn').classList.remove('btn-active-state'); } else { z.classList.add('show'); document.getElementById('fsZoomBtn').classList.add('btn-active-state'); } }
