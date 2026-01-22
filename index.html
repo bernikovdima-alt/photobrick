@@ -333,25 +333,65 @@ transition: transform 0.2s ease-out; /* Добавь это здесь, а не 
                 gap: 10px;
             }
 
-            /* 6. САМОЕ ГЛАВНОЕ: Логика "Как на ПК" для картинки */
-            #resultBox, #origBox {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                height: 100%; /* Высота ограничена контейнером */
-                max-width: 100%;
-                overflow: hidden;
-            }
+            /* 1. Стили для контейнеров (немного упростим) */
+        #resultBox, #origBox {
+            position: relative;
+            pointer-events: none;
+            flex: 0 1 auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            /* Убираем line-height: 0 отсюда, он мешает */
+        }
+        #origBox { max-width: 15%; }
+       .image-wrapper {
+            position: relative; /* Чтобы метка позиционировалась внутри */
+            display: inline-block; /* Обертка сжимается по размеру содержимого */
+            line-height: 0; /* Убираем паразитные отступы под картинкой */
 
-            .preview-content { 
-                max-width: 100% !important; 
-                max-height: 100% !important; /* КАРТИНКА ВПИСЫВАЕТСЯ ПО ВЫСОТЕ */
-                width: auto !important; 
-                height: auto !important; 
-                object-fit: contain !important; /* Сохраняет пропорции, ничего не обрезает */
-                display: block;
-            }
+            /* СТИЛИ РАМКИ (перенесены с .preview-content) */
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            border: 1px solid var(--primary);
+            padding: 1px;
+            background: var(--glass-bg);
+            
+            /* Плавность масштабирования теперь здесь */
+            transition: transform 0.2s ease-out;
+            transform-origin: center center;
+        }
 
+            .preview-content {
+            max-width: 100%;
+            max-height: 65vh;
+            /* Убрали border, padding, radius, shadow, background, transition */
+            object-fit: contain !important;
+            display: block;
+            pointer-events: none;
+            aspect-ratio: auto;
+        }
+.preview-label {
+            margin: 0;
+            background: rgba(0,0,0,0.6);
+            padding: 4px 8px;
+            border-radius: 4px; /* Чуть меньше радиус, чтобы вписаться в угол */
+            font-size: 9px;
+            color: #fff;
+            text-transform: uppercase;
+            
+            position: absolute;
+            /* ТЕПЕРЬ В ЛЕВОМ ВЕРХНЕМ УГЛУ ВНУТРИ РАМКИ */
+            top: 4px; 
+            left: 4px;
+            /* Убираем центрирование */
+            /* transform: translateX(-50%); left: 50%; */
+            
+            z-index: 5;
+            pointer-events: none;
+            border: 1px solid rgba(255,255,255,0.2);
+            white-space: nowrap;
+            line-height: normal;
+        }
             /* 7. Инструкция (Схема) */
             #instructionView { 
                 padding-top: 10px; 
@@ -743,12 +783,17 @@ transition: transform 0.2s ease-out; /* Добавь это здесь, а не 
             <div class="viewport" id="previewContainer">
                 <div class="preview-row">
                     <div class="preview-box" id="resultBox" style="display:none">
-                        <div class="preview-label">РЕЗУЛЬТАТ</div>
-                        <canvas id="mainCanvas" class="preview-content"></canvas>
+                        <div class="image-wrapper">
+                            <div class="preview-label">РЕЗУЛЬТАТ</div>
+                            <canvas id="mainCanvas" class="preview-content"></canvas>
+                        </div>
                     </div>
+                    
                     <div class="preview-box" id="origBox" style="display:none">
-                        <div class="preview-label">ОРИГИНАЛ</div>
-                        <img id="originalImageThumb" class="preview-content">
+                         <div class="image-wrapper">
+                             <div class="preview-label">ОРИГИНАЛ</div>
+                             <img id="originalImageThumb" class="preview-content">
+                        </div>
                     </div>
                 </div>
             </div>
@@ -869,12 +914,11 @@ transition: transform 0.2s ease-out; /* Добавь это здесь, а не 
             const scale = val / 100;
             const intVal = Math.round(val);
             
-            // Синхронизируем значения ползунков и текст
             document.getElementById('gridZoom').value = intVal;
             document.getElementById('fsGridZoom').value = intVal;
             document.getElementById('zoomText').innerText = intVal + '%';
 
-            // 1. МАСШТАБ ДЛЯ СХЕМЫ (Grid) — работает всегда и везде
+            // 1. МАСШТАБ ДЛЯ СХЕМЫ
             const grid = document.querySelector('#gridContainer .instruction-grid');
             if (grid) {
                 grid.style.transform = `scale(${scale})`;
@@ -883,19 +927,19 @@ transition: transform 0.2s ease-out; /* Добавь это здесь, а не 
                 container.style.height = (grid.offsetHeight * scale) + 'px';
             }
 
-            // 2. МАСШТАБ ДЛЯ РЕЗУЛЬТАТА (Canvas)
-            const mainCanvas = document.getElementById('mainCanvas');
-            if (mainCanvas) {
+            // 2. МАСШТАБ ДЛЯ РЕЗУЛЬТАТА (Теперь ищем ОБЕРТКУ)
+            // Ищем .image-wrapper внутри #resultBox
+            const resultWrapper = document.querySelector('#resultBox .image-wrapper');
+
+            if (resultWrapper) {
                 const isFullscreen = document.body.classList.contains('fullscreen-mode');
                 const isPreviewTab = document.getElementById('tab-preview').classList.contains('active');
 
-                // ПРИМЕНЯЕМ ЗУМ К КАРТИНКЕ ТОЛЬКО В ПОЛНОЭКРАННОМ "ВИДЕ"
                 if (isFullscreen && isPreviewTab) {
-                    mainCanvas.style.transform = `scale(${scale})`;
-                    mainCanvas.style.transformOrigin = 'center center';
+                    // Применяем масштаб к обертке вместе с рамкой и текстом
+                    resultWrapper.style.transform = `scale(${scale})`;
                 } else {
-                    // В ОБЫЧНОМ ОКНЕ ИЛИ НА ВКЛАДКЕ СХЕМЫ — ВСЕГДА 1:1
-                    mainCanvas.style.transform = 'scale(1)';
+                    resultWrapper.style.transform = 'scale(1)';
                 }
             }
         }
