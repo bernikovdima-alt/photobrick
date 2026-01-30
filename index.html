@@ -914,7 +914,12 @@
         let generatedMatrix = []; 
         let finalMatrix = []; 
         let currentSector = 'all';
+        // ... (существующие переменные)
         let gesturesLocked = false;
+        
+        // --- НОВЫЕ ПЕРЕМЕННЫЕ ДЛЯ СДВИГА ПРОСМОТРА ---
+        let visualPanX = 0;
+        let visualPanY = 0;
         
         let historyStack = [];
         let isPencil = false;
@@ -1006,10 +1011,13 @@
             const scale = val / 100;
             const intVal = Math.round(val);
             
-            // Синхронизируем оба ползунка (в шапке и в полноэкранном меню)
-            document.getElementById('gridZoom').value = intVal;
-            document.getElementById('fsGridZoom').value = intVal;
-            document.getElementById('zoomText').innerText = intVal + '%';
+            // Обновляем цифры в интерфейсе
+            const gridZoom = document.getElementById('gridZoom');
+            if(gridZoom) gridZoom.value = intVal;
+            const fsGridZoom = document.getElementById('fsGridZoom');
+            if(fsGridZoom) fsGridZoom.value = intVal;
+            const zoomText = document.getElementById('zoomText');
+            if(zoomText) zoomText.innerText = intVal + '%';
 
             // 1. МАСШТАБ ДЛЯ СХЕМЫ (Инструкция)
             const grid = document.querySelector('#gridContainer .instruction-grid');
@@ -1020,11 +1028,19 @@
                 container.style.height = (grid.offsetHeight * scale) + 'px';
             }
 
-            // 2. МАСШТАБ ДЛЯ РЕЗУЛЬТАТА (Синхронизирован: работает и в Fullscreen, и в обычном Виде)
+            // 2. МАСШТАБ И СДВИГ ДЛЯ РЕЗУЛЬТАТА (View)
             const resultWrapper = document.querySelector('#resultBox .image-wrapper');
             if (resultWrapper) {
-                resultWrapper.style.transform = `scale(${scale})`;
+                resultWrapper.style.transform = `translate(${visualPanX}px, ${visualPanY}px) scale(${scale})`;
             }
+        }
+
+        // --- Управление попапами зума (должно быть отдельно) ---
+        function toggleZoomPopup() { 
+            const p = document.getElementById('zoomPopup'); 
+            const btn = document.getElementById('zoomDisplayBtn'); 
+            p.classList.toggle('show'); 
+            btn.classList.toggle('btn-active-state'); 
         }
         function toggleZoomPopup() { const p = document.getElementById('zoomPopup'); const btn = document.getElementById('zoomDisplayBtn'); p.classList.toggle('show'); btn.classList.toggle('btn-active-state'); }
         document.addEventListener('click', (e) => { const p = document.getElementById('zoomPopup'); const btn = document.getElementById('zoomDisplayBtn'); if(p.classList.contains('show') && !p.contains(e.target) && !btn.contains(e.target)) { p.classList.remove('show'); btn.classList.remove('btn-active-state'); } });
@@ -1036,8 +1052,10 @@
             const el = document.getElementById('previewContainer');
             let isDragging = false, startX, startY, startPanX, startPanY, initialDist = 0, startZoom = 100;
             
-            // Новые переменные для зума сетки в режиме блока
+            // Переменные для зума и сдвига СЕТКИ (визуально)
             let gridStartDist = 0, gridStartZoom = 100;
+            let visualStartX = 0, visualStartY = 0; // Для запоминания начальной точки пальца
+            let startVisualPanX = 0, startVisualPanY = 0; // Для запоминания начальной позиции картинки
 
             const getCoord = (e) => { const r=document.getElementById('mainCanvas').getBoundingClientRect(); const sx=document.getElementById('mainCanvas').width/r.width; const sy=document.getElementById('mainCanvas').height/r.height; const cx=e.touches?e.touches[0].clientX:e.clientX; const cy=e.touches?e.touches[0].clientY:e.clientY; return {x:Math.floor((cx-r.left)*sx/10), y:Math.floor((cy-r.top)*sy/10)}; };
             
@@ -1045,27 +1063,29 @@
 
             el.addEventListener('touchstart', (e) => {
                 if(isPencil){pushHistory(); paint(e); return;}
-                
-                // Проверка наличия картинки
                 if(!sourceImage) return;
 
-                // --- НОВАЯ ЛОГИКА: ЕСЛИ ВКЛЮЧЕН БЛОК ---
+                // --- ЛОГИКА ПРИ ВКЛЮЧЕННОМ БЛОКЕ (ПРОСМОТР) ---
                 if (gesturesLocked) {
-                    // Проверяем: 2 пальца И мобильный вертикальный режим
-                    const isMobilePort = window.innerWidth <= 768 && window.innerHeight > window.innerWidth;
-                    
-                    if (e.touches.length === 2 && isMobilePort) {
+                    // А. Двигаем картинку одним пальцем (Визуальный Pan)
+                    if (e.touches.length === 1) {
+                        isDragging = true; // Используем тот же флаг
+                        visualStartX = e.touches[0].clientX;
+                        visualStartY = e.touches[0].clientY;
+                        startVisualPanX = visualPanX;
+                        startVisualPanY = visualPanY;
+                    }
+                    // Б. Зумим двумя пальцами
+                    else if (e.touches.length === 2) {
                         e.preventDefault();
-                        // Запоминаем начальное расстояние и текущий зум СЕТКИ
                         gridStartDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
                         gridStartZoom = parseInt(document.getElementById('gridZoom').value);
                     }
-                    // Если блок активен, прерываем выполнение (кадрирование не работает)
                     return; 
                 }
                 // ----------------------------------------
 
-                // СТАНДАРТНОЕ КАДРИРОВАНИЕ (Если блок выключен)
+                // СТАНДАРТНОЕ КАДРИРОВАНИЕ (Блок выключен)
                 if (e.touches.length === 1) {
                     if(document.getElementById('group-panX').classList.contains('locked') && document.getElementById('group-panY').classList.contains('locked')) return;
                     isDragging = true;
@@ -1085,26 +1105,35 @@
                 if(isPencil){paint(e); e.preventDefault(); return;}
                 if(!sourceImage) return;
 
-                // --- НОВАЯ ЛОГИКА: ЕСЛИ ВКЛЮЧЕН БЛОК ---
+                // --- ЛОГИКА ПРИ ВКЛЮЧЕННОМ БЛОКЕ ---
                 if (gesturesLocked) {
-                    const isMobilePort = window.innerWidth <= 768 && window.innerHeight > window.innerWidth;
-                    
-                    if (e.touches.length === 2 && isMobilePort && gridStartDist > 0) {
-                        e.preventDefault();
+                    e.preventDefault(); // Блокируем скролл страницы
+
+                    // А. Двигаем результат (1 палец)
+                    if (e.touches.length === 1 && isDragging) {
+                        const dx = e.touches[0].clientX - visualStartX;
+                        const dy = e.touches[0].clientY - visualStartY;
+                        
+                        // Обновляем глобальные переменные сдвига
+                        visualPanX = startVisualPanX + dx;
+                        visualPanY = startVisualPanY + dy;
+                        
+                        // Применяем изменения
+                        updateGridScale(document.getElementById('gridZoom').value);
+                    }
+                    // Б. Зумим результат (2 пальца)
+                    else if (e.touches.length === 2 && gridStartDist > 0) {
                         const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
                         const ratio = dist / gridStartDist;
-                        
-                        // Вычисляем новый зум для СЕТКИ (не для фото)
                         let newGridZoom = gridStartZoom * ratio;
-                        newGridZoom = Math.max(3, Math.min(200, newGridZoom)); // Ограничения min/max как в HTML
-                        
+                        newGridZoom = Math.max(3, Math.min(200, newGridZoom));
                         updateGridScale(newGridZoom);
                     }
                     return;
                 }
                 // ----------------------------------------
 
-                // СТАНДАРТНОЕ КАДРИРОВАНИЕ (Если блок выключен)
+                // СТАНДАРТНОЕ КАДРИРОВАНИЕ
                 e.preventDefault();
                 if (e.touches.length === 1 && isDragging) {
                     const dx = e.touches[0].clientX - startX;
@@ -1217,17 +1246,31 @@ if(d.hiddenRegions) {
                 return; 
             }
             
-            // ВАЖНОЕ ИЗМЕНЕНИЕ: Убрали 'bw' и 'popart' из этого списка, чтобы они не считали AI палитру
-            if (val === 'random_chaos' || val === 'smart_neon') {
-                if (aiBasePalette.length === 0) {
-                    if(val === 'random_chaos') { generateChaosPalette(); } 
-                    else if(val === 'smart_neon') { 
-                        updateCustomColorCount(parseInt(document.getElementById('colorCount').value));
-                        extractPaletteQuantized(); 
-                        aiBasePalette = [...currentPalette]; 
-                        generateSmartPalette(true); 
-                    }
+           // --- ИСПРАВЛЕННЫЙ БЛОК ДЛЯ ХАОСА ---
+            if (val === 'random_chaos') {
+                // 1. Принудительно ставим 12 цветов (стандарт для хаоса)
+                document.getElementById('colorCount').value = 12;
+                document.getElementById('colorCountVal').innerText = 12;
+                
+                // 2. Всегда генерируем новую палитру, не глядя на историю
+                generateChaosPalette(); 
+                
+                // 3. Очищаем базу AI, чтобы хаос накладывался чисто по яркости, а не по оттенкам прошлого фото
+                aiBasePalette = []; 
+                
+                renderPaletteUI(); processImage(); return;
+            }
+
+            // --- ИСПРАВЛЕННЫЙ БЛОК ДЛЯ НЕОНА ---
+            if (val === 'smart_neon') {
+                // Если базы нет (пришли с ЧБ или Хаоса), сначала создаем структуру из фото
+                if (aiBasePalette.length === 0) { 
+                    updateCustomColorCount(parseInt(document.getElementById('colorCount').value));
+                    extractPaletteQuantized(); 
+                    aiBasePalette = [...currentPalette]; 
                 }
+                // Генерируем неон на основе базы
+                generateSmartPalette(true); 
                 renderPaletteUI(); processImage(); return;
             }
             
@@ -1494,12 +1537,25 @@ const data = { palette: currentPalette, stockAssists: stockAssists, aiBase: aiBa
         function resetStylesOnly() { 
             pushHistory(); 
             
-            // 1. Сброс ползунков в нейтральное положение
+            // --- 1. СБРОС ВИЗУАЛЬНОГО ПРОСМОТРА (Зум и Позиция) ---
+            visualPanX = 0;
+            visualPanY = 0;
+            
+            // Сбрасываем ползунки зума просмотра
+            if(document.getElementById('gridZoom')) document.getElementById('gridZoom').value = 100;
+            if(document.getElementById('fsGridZoom')) document.getElementById('fsGridZoom').value = 100;
+            
+            // ПРИМЕНЯЕМ СБРОС (Возвращаем картинку в центр и масштаб 100%)
+            updateGridScale(100);
+            
+            // --- 2. СБРОС ОСТАЛЬНЫХ НАСТРОЕК ---
             document.getElementById('borderWidth').value = 0; 
             document.getElementById('borderWidthVal').innerText = 0; 
             
             document.getElementById('contrast').value = 100; 
             document.getElementById('contrastVal').innerText = "100%"; 
+            
+            // ... дальше код функции остается без изменений ...
             document.getElementById('brightness').value = 100; 
             document.getElementById('brightnessVal').innerText = "100%"; 
             
