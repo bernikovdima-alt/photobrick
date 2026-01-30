@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PhotoBrick v1.6.9 </title>
+    <title>PhotoBrick v2.1.8</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <style>
@@ -198,8 +198,7 @@
             display: block;  
             pointer-events: none;
             aspect-ratio: auto; /* Запрещает браузеру выдумывать свои пропорции */
-transition: transform 0.2s ease-out; /* Добавь это здесь, а не в JS */
-        
+            transition: transform 0.2s ease-out; 
         }
 
         .preview-label { margin: 0; background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 6px; font-size: 9px; color: #fff; text-transform: uppercase; position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 5; pointer-events: none; border: 1px solid rgba(255,255,255,0.2); white-space: nowrap; line-height: normal; }
@@ -344,21 +343,27 @@ transition: transform 0.2s ease-out; /* Добавь это здесь, а не 
             /* Убираем line-height: 0 отсюда, он мешает */
         }
         #origBox { max-width: 15%; }
-       .image-wrapper {
-            position: relative; /* Чтобы метка позиционировалась внутри */
-            display: inline-block; /* Обертка сжимается по размеру содержимого */
-            line-height: 0; /* Убираем паразитные отступы под картинкой */
+    .image-wrapper {
+            position: relative;
+            display: inline-block;
+            line-height: 0;
 
-            /* СТИЛИ РАМКИ (перенесены с .preview-content) */
+            /* СТИЛИ РАМКИ */
             border-radius: 8px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            border: 1px solid var(--primary);
             padding: 1px;
             background: var(--glass-bg);
             
-            /* Плавность масштабирования теперь здесь */
             transition: transform 0.2s ease-out;
             transform-origin: center center;
+            
+            /* --- ИСПРАВЛЕНИЯ МОБИЛЬНОГО ВИДА --- */
+            border: 1px solid var(--primary) !important;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3) !important;
+            padding: 0 !important;
+            background: transparent !important;
+            
+            /* ДОБАВЬ ВОТ ЭТУ СТРОКУ: */
+            overflow: hidden; /* Обрезает углы фото по форме рамки */
         }
 
             .preview-content {
@@ -369,7 +374,14 @@ transition: transform 0.2s ease-out; /* Добавь это здесь, а не 
             display: block;
             pointer-events: none;
             aspect-ratio: auto;
+             
+             /* --- ИСПРАВЛЕНИЯ МОБИЛЬНОГО ВИДА --- */
+             border: none !important;
+             box-shadow: none !important;
+             background: transparent !important;
+             border-radius: 0 !important; /* Скругление берется от обертки */
         }
+        
 .preview-label {
             margin: 0;
             background: rgba(0,0,0,0.6);
@@ -380,17 +392,20 @@ transition: transform 0.2s ease-out; /* Добавь это здесь, а не 
             text-transform: uppercase;
             
             position: absolute;
-            /* ТЕПЕРЬ В ЛЕВОМ ВЕРХНЕМ УГЛУ ВНУТРИ РАМКИ */
-            top: 4px; 
-            left: 4px;
-            /* Убираем центрирование */
-            /* transform: translateX(-50%); left: 50%; */
-            
             z-index: 5;
             pointer-events: none;
             border: 1px solid rgba(255,255,255,0.2);
             white-space: nowrap;
             line-height: normal;
+            
+            /* --- ИСПРАВЛЕНИЯ МОБИЛЬНОГО ВИДА (Центровка) --- */
+            left: 50% !important;        /* Сдвиг на середину */
+            transform: translateX(-50%) !important; /* Точная центровка */
+            top: 6px !important;         /* Отступ сверху */
+            right: auto !important;      /* Сброс привязки к правому краю */
+            font-size: 7px !important;   /* Уменьшенный шрифт (было 9px) */
+            padding: 2px 5px !important; /* Более компактная подложка */
+            letter-spacing: 0.5px;       /* Чуть разрядим буквы для читаемости */
         }
             /* 7. Инструкция (Схема) */
             #instructionView { 
@@ -455,6 +470,54 @@ transition: transform 0.2s ease-out; /* Добавь это здесь, а не 
         .settings-arrow {
             transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
         }
+/* Стили для ввода количества блоков в режиме Свой AI */
+        .stock-input-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 11px;
+            padding: 4px;
+            background: rgba(0,0,0,0.1);
+            border-radius: 4px;
+            border: 1px solid var(--glass-border);
+        }
+        
+        .stock-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .stock-color-preview {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.3);
+            flex-shrink: 0;
+        }
+
+        .stock-input-field {
+            width: 60px;
+            background: var(--input-bg);
+            border: 1px solid var(--glass-border);
+            color: var(--text-main);
+            border-radius: 4px;
+            padding: 4px;
+            font-size: 11px;
+            text-align: right;
+        }
+
+        .stock-input-field:focus {
+            border-color: var(--primary);
+        }
+
+        /* Когда мы в режиме ввода, скрываем обычную статистику */
+        .algo-box.stock-mode-active {
+            border-color: var(--primary);
+            background: rgba(var(--primary-rgb), 0.1);
+        }
     </style>
 </head>
 <body data-theme="dark">
@@ -478,6 +541,7 @@ transition: transform 0.2s ease-out; /* Добавь это здесь, а не 
             <div class="modal-body">
     <div class="algo-box" style="background: rgba(255, 215, 0, 0.15); border: 2px solid #ffd700; margin-bottom: 25px;">
         <span class="algo-title" style="color: #d4a000; font-size: 18px;">🚀 Быстрый старт:</span>
+        [Image of pixel art mosaic generator interface]
         <ul style="margin-top: 5px; padding-left: 20px;">
             <li>Загрузите фото (или перетащите его в окно).</li>
             <li>Выберите размер схемы (S, M, L, XL или свой). Отмасштабируйте по ширине и высоте.</li>
@@ -563,7 +627,7 @@ transition: transform 0.2s ease-out; /* Добавь это здесь, а не 
         <li><b>ЛЕГО:</b> 5 ярких базовых цветов. Для контрастных и веселых картинок.</li>
         <li><b>Оригинал (Smart AI):</b> Программа анализирует фото и выбирает самые частые цвета.</li>
         <li><b>Умный Неон:</b> Генерирует яркую светящуюся палитру с математически выверенной яркостью.</li>
-        <li><b>Свой AI (Реколор):</b> <small>!!! В разработке !!!</small> (Вы задаете свое количество блоков, а программа предлагает вариант).</li>
+        <li><b>Свой AI (Реколор):</b> <small>!!!Альфа версия!!!</small> (Вы задаете свое количество блоков, а программа предлагает вариант).</li>
         <li><b>Случайный (Хаос):</b> Полный рандом цветов. Не бойтесь его — и в Хаосе проскакивают шедевры!</li>
         <li><b>Свой (Градиент):</b> Вы сами задаёте палитру цвета и жмёте «ОБНОВИТЬ» (от темного к светлому).</li>
     </ul>
@@ -668,7 +732,7 @@ transition: transform 0.2s ease-out; /* Добавь это здесь, а не 
                         <span class="slider-label">Кол-во цветов: <span class="val-display" id="colorCountVal" style="margin-left:5px;">5</span></span>
                     </div>
                     <div class="slider-row">
-                        <input type="range" id="colorCount" min="3" max="8" value="5">
+                        <input type="range" id="colorCount" min="3" max="12" value="12">
                         <span class="icon-btn-side lock-toggle" onclick="toggleLock('colorCountGroup', 'colorCount')">🔓</span>
                     </div>
                 </div>
@@ -751,9 +815,9 @@ transition: transform 0.2s ease-out; /* Добавь это здесь, а не 
                 <div style="display:flex; justify-content:space-between; font-size:12px; margin-top:4px;"><span>БЮДЖЕТ:</span><span id="totalCost">0 ₽</span></div>
             </div>
             
-            <div style="text-align:center; font-size:10px; color:var(--text-sec); margin-top:20px; opacity:0.6;">
-                PhotoBrick v1.6.9
-            </div>
+            <div id="versionLabel" onclick="cycleLayoutMode()" style="text-align:center; font-size:10px; color:var(--text-sec); margin-top:20px; opacity:0.6; cursor:pointer; user-select:none;" title="Нажми для смены режима (Auto/Mobile/PC)">
+    PhotoBrick v2.1.9
+</div>
         </aside>
 
         <main class="stage">
@@ -784,7 +848,7 @@ transition: transform 0.2s ease-out; /* Добавь это здесь, а не 
                 <div class="preview-row">
                     <div class="preview-box" id="resultBox" style="display:none">
                         <div class="image-wrapper">
-                            <div class="preview-label">РЕЗУЛЬТАТ</div>
+                            <div class="preview-label" id="resultLabel">РЕЗУЛЬТАТ</div>
                             <canvas id="mainCanvas" class="preview-content"></canvas>
                         </div>
                     </div>
@@ -813,13 +877,37 @@ transition: transform 0.2s ease-out; /* Добавь это здесь, а не 
     </div>
 
     <canvas id="procCanvas" style="display:none"></canvas>
-
+<div id="helperSelectModal" class="modal-overlay" onclick="closeHelperModal(event)">
+        <div class="modal" style="max-width: 300px;">
+            <div class="modal-header">
+                <span>Выберите оттенок</span>
+                <button class="top-btn" onclick="document.getElementById('helperSelectModal').style.display='none'">✖</button>
+            </div>
+            <div class="modal-body" style="text-align: center;">
+                <p style="font-size: 12px; color: var(--text-sec); margin-top: 0;">Нажмите на цвет, чтобы добавить его как помощника для смешивания.</p>
+                <div id="helperPaletteGrid" style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; padding: 10px;">
+                    </div>
+            </div>
+        </div>
+    </div>
     <script>
-        const SYMBOL_SETS = { letters: ["B", "X", "G", "H", "W", "A", "C", "D"], numbers: ["1", "2", "3", "4", "5", "6", "7", "8"], shapes: ["■", "▲", "●", "◆", "★", "✚", "▼", "⬟"], roman: ["I", "II", "III", "IV", "V", "VI", "VII", "VIII"] };
+        const SYMBOL_SETS = { 
+    letters: ["B", "X", "G", "H", "W", "A", "C", "D", "E", "F", "K", "L"], 
+    numbers: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"], 
+    shapes: ["■", "▲", "●", "◆", "★", "✚", "▼", "⬟", "⬢", "⬥", "⬦", "⬧"], 
+    roman: ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"] 
+};
         let currentSymbolSet = SYMBOL_SETS.letters;
         const PRESETS = { 'bw': ["#141414", "#484848", "#7e7e7e", "#b4b4b4", "#ffffff"] };
         const LEGO_PALETTE = ["#111111", "#004d99", "#b80000", "#fdb927", "#ffffff"];
 
+        let stockQuantities = [150, 150, 150, 150, 150, 150, 150, 150, 150, 150, 150, 150]; // Хранит количество блоков (макс 12 цветов)
+        let stockAssists = {}; // Хранилище помощников: { primaryIndex: [ {hex, qty, id}, ... ] }
+        let displayPalette = []; // Палитра для отрисовки (Основная + Помощники)
+        let displaySymbols = []; // Символы для отрисовки
+        let isStockMode = false; // Флаг, включен ли режим "Свой AI"
+        let useMixMode = false;
+        let activeHelperIdx = -1;
         let currentPalette = []; 
         let aiBasePalette = []; 
         let sourceImage = null;
@@ -832,7 +920,6 @@ transition: transform 0.2s ease-out; /* Добавь это здесь, а не 
         let isPencil = false;
         let selectedBrushIndex = 0;
         
-        // ЗАМЕНИТЬ ЭТИ ПЕРЕМЕННЫЕ
         let hiddenRegions = new Set(); // Хранит строки вида "row_Y_startX_endX" или "col_X_startY_endY"
         let currentGridBounds = { sX: 0, eX: 0, sY: 0, eY: 0 }; // Текущие границы просмотра
 
@@ -914,11 +1001,12 @@ transition: transform 0.2s ease-out; /* Добавь это здесь, а не 
             const scale = val / 100;
             const intVal = Math.round(val);
             
+            // Синхронизируем оба ползунка (в шапке и в полноэкранном меню)
             document.getElementById('gridZoom').value = intVal;
             document.getElementById('fsGridZoom').value = intVal;
             document.getElementById('zoomText').innerText = intVal + '%';
 
-            // 1. МАСШТАБ ДЛЯ СХЕМЫ
+            // 1. МАСШТАБ ДЛЯ СХЕМЫ (Инструкция)
             const grid = document.querySelector('#gridContainer .instruction-grid');
             if (grid) {
                 grid.style.transform = `scale(${scale})`;
@@ -927,20 +1015,10 @@ transition: transform 0.2s ease-out; /* Добавь это здесь, а не 
                 container.style.height = (grid.offsetHeight * scale) + 'px';
             }
 
-            // 2. МАСШТАБ ДЛЯ РЕЗУЛЬТАТА (Теперь ищем ОБЕРТКУ)
-            // Ищем .image-wrapper внутри #resultBox
+            // 2. МАСШТАБ ДЛЯ РЕЗУЛЬТАТА (Синхронизирован: работает и в Fullscreen, и в обычном Виде)
             const resultWrapper = document.querySelector('#resultBox .image-wrapper');
-
             if (resultWrapper) {
-                const isFullscreen = document.body.classList.contains('fullscreen-mode');
-                const isPreviewTab = document.getElementById('tab-preview').classList.contains('active');
-
-                if (isFullscreen && isPreviewTab) {
-                    // Применяем масштаб к обертке вместе с рамкой и текстом
-                    resultWrapper.style.transform = `scale(${scale})`;
-                } else {
-                    resultWrapper.style.transform = 'scale(1)';
-                }
+                resultWrapper.style.transform = `scale(${scale})`;
             }
         }
         function toggleZoomPopup() { const p = document.getElementById('zoomPopup'); const btn = document.getElementById('zoomDisplayBtn'); p.classList.toggle('show'); btn.classList.toggle('btn-active-state'); }
@@ -949,12 +1027,110 @@ transition: transform 0.2s ease-out; /* Добавь это здесь, а не 
         function toggleLock(groupId, inputId) { const group = document.getElementById(groupId); const input = document.getElementById(inputId); const btn = group.querySelector('.lock-toggle'); if(group.classList.contains('locked')) { group.classList.remove('locked'); input.disabled = false; btn.innerText = '🔓'; } else { group.classList.add('locked'); input.disabled = true; btn.innerText = '🔒'; } }
         function toggleGestureLock() { gesturesLocked = !gesturesLocked; const btn = document.getElementById('gestureLockBtn'); btn.classList.toggle('active'); btn.innerText = gesturesLocked ? '🔒 БЛОК' : '🔓 БЛОК'; }
         
-        function setupTouchGestures() { const el = document.getElementById('previewContainer'); let isDragging = false, startX, startY, startPanX, startPanY, initialDist = 0, startZoom = 100; 
+        function setupTouchGestures() {
+            const el = document.getElementById('previewContainer');
+            let isDragging = false, startX, startY, startPanX, startPanY, initialDist = 0, startZoom = 100;
+            
+            // Новые переменные для зума сетки в режиме блока
+            let gridStartDist = 0, gridStartZoom = 100;
+
             const getCoord = (e) => { const r=document.getElementById('mainCanvas').getBoundingClientRect(); const sx=document.getElementById('mainCanvas').width/r.width; const sy=document.getElementById('mainCanvas').height/r.height; const cx=e.touches?e.touches[0].clientX:e.clientX; const cy=e.touches?e.touches[0].clientY:e.clientY; return {x:Math.floor((cx-r.left)*sx/10), y:Math.floor((cy-r.top)*sy/10)}; };
+            
             const paint = (e) => { if(!finalMatrix.length)return; const {x,y}=getCoord(e); if(y>=0&&y<finalMatrix.length&&x>=0&&x<finalMatrix[0].length){ if(finalMatrix[y][x]!==selectedBrushIndex){ finalMatrix[y][x]=selectedBrushIndex; const bW=parseInt(document.getElementById('borderWidth').value); if(generatedMatrix.length && x>=bW && x<finalMatrix[0].length-bW && y>=bW && y<finalMatrix.length-bW){ generatedMatrix[y-bW][x-bW]=selectedBrushIndex; } drawPreview(finalMatrix[0].length,finalMatrix.length); updateStats(); } } };
-            el.addEventListener('touchstart', (e) => { if(isPencil){pushHistory(); paint(e); return;} if(gesturesLocked || !sourceImage) return; if (e.touches.length === 1) { if(document.getElementById('group-panX').classList.contains('locked') && document.getElementById('group-panY').classList.contains('locked')) return; isDragging = true; startX = e.touches[0].clientX; startY = e.touches[0].clientY; startPanX = parseInt(document.getElementById('panX').value); startPanY = parseInt(document.getElementById('panY').value); } else if (e.touches.length === 2) { if(document.getElementById('group-zoom').classList.contains('locked')) return; isDragging = false; initialDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); startZoom = parseInt(document.getElementById('zoom').value); } }, {passive: false}); 
-            el.addEventListener('touchmove', (e) => { if(isPencil){paint(e); e.preventDefault(); return;} if(gesturesLocked || !sourceImage) return; e.preventDefault(); if (e.touches.length === 1 && isDragging) { const dx = e.touches[0].clientX - startX; const dy = e.touches[0].clientY - startY; const scaleFactor = 0.5; if(!document.getElementById('group-panX').classList.contains('locked')) { let newPanX = startPanX + (dx * scaleFactor); newPanX = Math.max(-100, Math.min(100, newPanX)); document.getElementById('panX').value = newPanX; document.getElementById('panXVal').innerText = Math.round(newPanX) + '%'; } if(!document.getElementById('group-panY').classList.contains('locked')) { let newPanY = startPanY + (dy * scaleFactor); newPanY = Math.max(-100, Math.min(100, newPanY)); document.getElementById('panY').value = newPanY; document.getElementById('panYVal').innerText = Math.round(newPanY) + '%'; } processImage(); } else if (e.touches.length === 2) { const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); const ratio = dist / initialDist; let newZoom = startZoom * ratio; newZoom = Math.max(1, Math.min(300, newZoom)); document.getElementById('zoom').value = newZoom; document.getElementById('zoomVal').innerText = Math.round(newZoom) + '%'; processImage(); } }, {passive: false}); 
-            el.addEventListener('touchend', () => { isDragging = false; }); }
+
+            el.addEventListener('touchstart', (e) => {
+                if(isPencil){pushHistory(); paint(e); return;}
+                
+                // Проверка наличия картинки
+                if(!sourceImage) return;
+
+                // --- НОВАЯ ЛОГИКА: ЕСЛИ ВКЛЮЧЕН БЛОК ---
+                if (gesturesLocked) {
+                    // Проверяем: 2 пальца И мобильный вертикальный режим
+                    const isMobilePort = window.innerWidth <= 768 && window.innerHeight > window.innerWidth;
+                    
+                    if (e.touches.length === 2 && isMobilePort) {
+                        e.preventDefault();
+                        // Запоминаем начальное расстояние и текущий зум СЕТКИ
+                        gridStartDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                        gridStartZoom = parseInt(document.getElementById('gridZoom').value);
+                    }
+                    // Если блок активен, прерываем выполнение (кадрирование не работает)
+                    return; 
+                }
+                // ----------------------------------------
+
+                // СТАНДАРТНОЕ КАДРИРОВАНИЕ (Если блок выключен)
+                if (e.touches.length === 1) {
+                    if(document.getElementById('group-panX').classList.contains('locked') && document.getElementById('group-panY').classList.contains('locked')) return;
+                    isDragging = true;
+                    startX = e.touches[0].clientX;
+                    startY = e.touches[0].clientY;
+                    startPanX = parseInt(document.getElementById('panX').value);
+                    startPanY = parseInt(document.getElementById('panY').value);
+                } else if (e.touches.length === 2) {
+                    if(document.getElementById('group-zoom').classList.contains('locked')) return;
+                    isDragging = false;
+                    initialDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                    startZoom = parseInt(document.getElementById('zoom').value);
+                }
+            }, {passive: false});
+
+            el.addEventListener('touchmove', (e) => {
+                if(isPencil){paint(e); e.preventDefault(); return;}
+                if(!sourceImage) return;
+
+                // --- НОВАЯ ЛОГИКА: ЕСЛИ ВКЛЮЧЕН БЛОК ---
+                if (gesturesLocked) {
+                    const isMobilePort = window.innerWidth <= 768 && window.innerHeight > window.innerWidth;
+                    
+                    if (e.touches.length === 2 && isMobilePort && gridStartDist > 0) {
+                        e.preventDefault();
+                        const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                        const ratio = dist / gridStartDist;
+                        
+                        // Вычисляем новый зум для СЕТКИ (не для фото)
+                        let newGridZoom = gridStartZoom * ratio;
+                        newGridZoom = Math.max(3, Math.min(200, newGridZoom)); // Ограничения min/max как в HTML
+                        
+                        updateGridScale(newGridZoom);
+                    }
+                    return;
+                }
+                // ----------------------------------------
+
+                // СТАНДАРТНОЕ КАДРИРОВАНИЕ (Если блок выключен)
+                e.preventDefault();
+                if (e.touches.length === 1 && isDragging) {
+                    const dx = e.touches[0].clientX - startX;
+                    const dy = e.touches[0].clientY - startY;
+                    const scaleFactor = 0.5;
+                    if(!document.getElementById('group-panX').classList.contains('locked')) {
+                        let newPanX = startPanX + (dx * scaleFactor);
+                        newPanX = Math.max(-100, Math.min(100, newPanX));
+                        document.getElementById('panX').value = newPanX;
+                        document.getElementById('panXVal').innerText = Math.round(newPanX) + '%';
+                    }
+                    if(!document.getElementById('group-panY').classList.contains('locked')) {
+                        let newPanY = startPanY + (dy * scaleFactor);
+                        newPanY = Math.max(-100, Math.min(100, newPanY));
+                        document.getElementById('panY').value = newPanY;
+                        document.getElementById('panYVal').innerText = Math.round(newPanY) + '%';
+                    }
+                    processImage();
+                } else if (e.touches.length === 2) {
+                    const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+                    const ratio = dist / initialDist;
+                    let newZoom = startZoom * ratio;
+                    newZoom = Math.max(1, Math.min(300, newZoom));
+                    document.getElementById('zoom').value = newZoom;
+                    document.getElementById('zoomVal').innerText = Math.round(newZoom) + '%';
+                    processImage();
+                }
+            }, {passive: false});
+
+            el.addEventListener('touchend', () => { isDragging = false; });
+        }
 
         function setupMouseGestures() { const el = document.getElementById('previewContainer'); const getCoord = (e) => { const r=document.getElementById('mainCanvas').getBoundingClientRect(); const sx=document.getElementById('mainCanvas').width/r.width; const sy=document.getElementById('mainCanvas').height/r.height; return {x:Math.floor((e.clientX-r.left)*sx/10), y:Math.floor((e.clientY-r.top)*sy/10)}; }; const paint = (e) => { if(!finalMatrix.length)return; const {x,y}=getCoord(e); if(y>=0&&y<finalMatrix.length&&x>=0&&x<finalMatrix[0].length){ if(finalMatrix[y][x]!==selectedBrushIndex){ finalMatrix[y][x]=selectedBrushIndex; const bW=parseInt(document.getElementById('borderWidth').value); if(generatedMatrix.length && x>=bW && x<finalMatrix[0].length-bW && y>=bW && y<finalMatrix.length-bW){ generatedMatrix[y-bW][x-bW]=selectedBrushIndex; } drawPreview(finalMatrix[0].length,finalMatrix.length); updateStats(); } } }; el.addEventListener('wheel', (e) => { if(isPencil || gesturesLocked || !sourceImage || document.getElementById('group-zoom').classList.contains('locked')) return; e.preventDefault(); const delta = Math.sign(e.deltaY) * -10; let val = parseInt(document.getElementById('zoom').value) + delta; val = Math.max(1, Math.min(300, val)); document.getElementById('zoom').value = val; document.getElementById('zoomVal').innerText = val + '%'; processImage(); }, {passive: false}); let isMouseDown = false, startX, startY, startPanX, startPanY; el.addEventListener('mousedown', (e) => { if(isPencil) { pushHistory(); isMouseDown=true; paint(e); return; } if(gesturesLocked || !sourceImage) return; if(document.getElementById('group-panX').classList.contains('locked') && document.getElementById('group-panY').classList.contains('locked')) return; isMouseDown = true; el.style.cursor = 'grabbing'; startX = e.clientX; startY = e.clientY; startPanX = parseFloat(document.getElementById('panX').value); startPanY = parseFloat(document.getElementById('panY').value); }); window.addEventListener('mousemove', (e) => { if(!isMouseDown || !sourceImage) return; e.preventDefault(); if(isPencil) { paint(e); return; } const dx = e.clientX - startX; const dy = e.clientY - startY; const sensitivity = 0.5; if(!document.getElementById('group-panX').classList.contains('locked')) { let nx = startPanX + (dx * sensitivity); nx = Math.max(-100, Math.min(100, nx)); document.getElementById('panX').value = nx; document.getElementById('panXVal').innerText = Math.round(nx) + '%'; } if(!document.getElementById('group-panY').classList.contains('locked')) { let ny = startPanY + (dy * sensitivity); ny = Math.max(-100, Math.min(100, ny)); document.getElementById('panY').value = ny; document.getElementById('panYVal').innerText = Math.round(ny) + '%'; } processImage(); }); window.addEventListener('mouseup', () => { isMouseDown = false; if(!isPencil) el.style.cursor = 'grab'; }); }
         function setupGridGestures() { const el = document.getElementById('instructionView'); let startDist = 0, startZoom = 100; el.addEventListener('touchstart', (e) => { if (e.touches.length === 2) { e.preventDefault(); startDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); startZoom = parseInt(document.getElementById('gridZoom').value); } }, {passive: false}); el.addEventListener('touchmove', (e) => { if (e.touches.length === 2) { e.preventDefault(); const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); updateGridScale(startZoom * (dist/startDist)); } }, {passive: false}); }
@@ -989,7 +1165,14 @@ transition: transform 0.2s ease-out; /* Добавь это здесь, а не 
         function loadProject(e) { const file = e.target.files[0]; if(!file) return; if(file.type.match('image.*')) { alert("Ошибка: Вы пытаетесь загрузить картинку в меню проекта."); return; } const r = new FileReader(); r.onload = (ev) => processLoadedProject(ev.target.result); r.readAsText(file); }
 
         function processLoadedProject(jsonStr) {
-            try { const d = JSON.parse(jsonStr); currentPalette = d.palette; if(d.aiBase) aiBasePalette = d.aiBase; document.getElementById('zoom').value = d.settings.zoom; document.getElementById('zoomVal').innerText = d.settings.zoom + '%'; document.getElementById('contrast').value = d.settings.contrast; document.getElementById('contrastVal').innerText = d.settings.contrast + '%'; document.getElementById('brightness').value = d.settings.brightness || 100; document.getElementById('brightnessVal').innerText = (d.settings.brightness || 100) + '%'; document.getElementById('panX').value = d.settings.panX; document.getElementById('panY').value = d.settings.panY; document.getElementById('setSize').value = d.settings.size; if(d.settings.size === 'custom') document.getElementById('customSizeGroup').style.display = 'flex'; document.getElementById('customWidth').value = d.settings.cW || 50; document.getElementById('customHeight').value = d.settings.cH || 50; document.getElementById('colorCount').value = d.settings.cc || 5; document.getElementById('colorCountVal').innerText = d.settings.cc || 5; if(d.settings.sharpness) { document.getElementById('sharpness').value = d.settings.sharpness; document.getElementById('sharpnessVal').innerText = d.settings.sharpness + '%'; } if(d.settings.smartBlur) { document.getElementById('smartBlur').value = d.settings.smartBlur; document.getElementById('smartBlurVal').innerText = d.settings.smartBlur; } if(d.hiddenRegions) {
+            try { const d = JSON.parse(jsonStr); currentPalette = d.palette; if(d.aiBase) aiBasePalette = d.aiBase; document.getElementById('zoom').value = d.settings.zoom; document.getElementById('zoomVal').innerText = d.settings.zoom + '%'; document.getElementById('contrast').value = d.settings.contrast; document.getElementById('contrastVal').innerText = d.settings.contrast + '%'; document.getElementById('brightness').value = d.settings.brightness || 100; document.getElementById('brightnessVal').innerText = (d.settings.brightness || 100) + '%'; document.getElementById('panX').value = d.settings.panX; document.getElementById('panY').value = d.settings.panY; document.getElementById('setSize').value = d.settings.size; if(d.settings.size === 'custom') document.getElementById('customSizeGroup').style.display = 'flex'; document.getElementById('customWidth').value = d.settings.cW || 50; document.getElementById('customHeight').value = d.settings.cH || 50; document.getElementById('colorCount').value = d.settings.cc || 5; document.getElementById('colorCountVal').innerText = d.settings.cc || 5; if(d.settings.sharpness) { document.getElementById('sharpness').value = d.settings.sharpness; document.getElementById('sharpnessVal').innerText = d.settings.sharpness + '%'; } if(d.settings.smartBlur) { 
+    document.getElementById('smartBlur').value = d.settings.smartBlur; 
+    document.getElementById('smartBlurVal').innerText = d.settings.smartBlur; 
+} 
+
+if(d.stockAssists) stockAssists = d.stockAssists; else stockAssists = {};
+
+if(d.hiddenRegions) {
     hiddenRegions = new Set(d.hiddenRegions);
 } else {
     // Поддержка старых сохранений (сбрасываем, т.к. формат несовместим)
@@ -998,15 +1181,57 @@ transition: transform 0.2s ease-out; /* Добавь это здесь, а не 
         }
 
         function applyPaletteLogic(val) {
+            // Сбрасываем флаг режима склада
+            isStockMode = false;
+            
+            // --- РЕЖИМ: СВОЙ AI (v4.0 Default Palette) ---
+            if (val === 'custom_ai') {
+    isStockMode = true;
+    finalMatrix = [];
+    generatedMatrix = [];
+    const cvs = document.getElementById('mainCanvas');
+    const ctx = cvs.getContext('2d');
+    ctx.clearRect(0, 0, cvs.width, cvs.height); 
+
+    // УСТАНОВКА ПАЛИТРЫ (12 ЦВЕТОВ)
+    const targetCount = 12; // Изменили с 8 на 12
+    document.getElementById('colorCount').value = targetCount;
+    document.getElementById('colorCountVal').innerText = targetCount;
+
+    // Математически идеальный градиент из 12 оттенков (от черного к белому)
+    const idealPalette = [
+        "#000000", "#1A1A1A", "#333333", "#4D4D4D", 
+        "#666666", "#808080", "#999999", "#B3B3B3", 
+        "#CCCCCC", "#E6E6E6", "#F2F2F2", "#FFFFFF"
+    ];
+
+    currentPalette = [...idealPalette];
+    aiBasePalette = [...idealPalette];
+
+    // Синхронизация массива количеств
+    while(stockQuantities.length < targetCount) stockQuantities.push(0);
+    if (stockQuantities.length > targetCount) stockQuantities = stockQuantities.slice(0, targetCount);
+
+    renderPaletteUI();
+    renderStockInputs(); 
+    return; 
+}
+            // ---------------------------------------------
+
             if (val === 'bw' || val === 'popart') {
                  document.getElementById('colorCount').value = 5;
                  document.getElementById('colorCountVal').innerText = 5;
             }
 
-            if (val === 'custom') { document.getElementById('colorCount').value = currentPalette.length; document.getElementById('colorCountVal').innerText = currentPalette.length; renderPaletteUI(); return; }
+            if (val === 'custom') { 
+                document.getElementById('colorCount').value = currentPalette.length; 
+                document.getElementById('colorCountVal').innerText = currentPalette.length; 
+                renderPaletteUI(); 
+                return; 
+            }
             
-            if (val === 'custom_ai' || val === 'random_chaos' || val === 'smart_neon' || val === 'popart' || val === 'bw') {
-                if (aiBasePalette.length === 0 || val !== 'custom_ai') {
+            if (val === 'random_chaos' || val === 'smart_neon' || val === 'popart' || val === 'bw') {
+                if (aiBasePalette.length === 0) {
                     if(val === 'random_chaos') { generateChaosPalette(); } 
                     else if(val === 'smart_neon') { 
                         updateCustomColorCount(parseInt(document.getElementById('colorCount').value));
@@ -1020,15 +1245,16 @@ transition: transform 0.2s ease-out; /* Добавь это здесь, а не 
                         if(val === 'bw') { currentPalette = [...PRESETS['bw']]; } 
                         else if(val === 'popart') { currentPalette = [...LEGO_PALETTE]; }
                     }
-                    if(val === 'custom_ai') aiBasePalette = [...currentPalette];
                 }
                 renderPaletteUI(); processImage(); return;
             }
+            
             if (PRESETS[val]) { currentPalette = [...PRESETS[val]]; aiBasePalette=[]; } 
             else if (val === 'original') { extractPaletteQuantized(); aiBasePalette=[]; } 
-            renderPaletteUI(); if(sourceImage) processImage(); 
+            
+            renderPaletteUI(); 
+            if(sourceImage) processImage(); 
         }
-
         function updateCustomColorCount(newCount) { while(currentPalette.length < newCount) currentPalette.push('#' + Math.floor(Math.random()*16777215).toString(16).padStart(6, '0')); while(currentPalette.length > newCount) currentPalette.pop(); }
 
         function generateChaosPalette() { 
@@ -1037,7 +1263,7 @@ transition: transform 0.2s ease-out; /* Добавь это здесь, а не 
             currentPalette.sort((a,b) => { const getLum = (hex) => { const r = parseInt(hex.slice(1,3), 16); const g = parseInt(hex.slice(3,5), 16); const b = parseInt(hex.slice(5,7), 16); return r+g+b; }; return getLum(a) - getLum(b); });
         }
         function extractPaletteQuantized() {
-            if(!sourceImage) return; const count = parseInt(document.getElementById('colorCount').value); const canvas = document.getElementById('procCanvas'); const ctx = canvas.getContext('2d'); const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data; let pixelArray = []; for(let i=0; i<pixels.length; i+=40) pixelArray.push([pixels[i], pixels[i+1], pixels[i+2]]); if(pixelArray.length === 0) return; let centroids = []; for(let k=0; k<count; k++) centroids.push(pixelArray[Math.floor(Math.random()*pixelArray.length)]);
+            if(!sourceImage) return; const count = parseInt(document.getElementById('colorCount').value); const canvas = document.getElementById('procCanvas'); const ctx = canvas.getContext('2d', { willReadFrequently: true }); const pixels = ctx.getImageData(0, 0, canvas.width, canvas.height).data; let pixelArray = []; for(let i=0; i<pixels.length; i+=40) pixelArray.push([pixels[i], pixels[i+1], pixels[i+2]]); if(pixelArray.length === 0) return; let centroids = []; for(let k=0; k<count; k++) centroids.push(pixelArray[Math.floor(Math.random()*pixelArray.length)]);
             for(let iter=0; iter<5; iter++) { let buckets = Array(count).fill().map(()=>[]); pixelArray.forEach(p => { let minDist = Infinity, idx = 0; centroids.forEach((c, i) => { const d = Math.sqrt((p[0]-c[0])**2 + (p[1]-c[1])**2 + (p[2]-c[2])**2); if(d < minDist) { minDist = d; idx = i; } }); buckets[idx].push(p); }); centroids = buckets.map(bucket => { if(bucket.length === 0) return [Math.random()*255, Math.random()*255, Math.random()*255]; let r=0, g=0, b=0; bucket.forEach(p => { r+=p[0]; g+=p[1]; b+=p[2]; }); return [Math.round(r/bucket.length), Math.round(g/bucket.length), Math.round(b/bucket.length)]; }); }
             centroids.sort((a,b) => (a[0]+a[1]+a[2]) - (b[0]+b[1]+b[2])); currentPalette = centroids.map(c => rgbToHex(c[0], c[1], c[2]));
         }
@@ -1057,18 +1283,60 @@ transition: transform 0.2s ease-out; /* Добавь это здесь, а не 
 }
         function updateBorderSettings() { document.getElementById('borderWidthVal').innerText = document.getElementById('borderWidth').value; finalizeMatrixWithBorder(); }
         function finalizeMatrixWithBorder() {
-            if(!generatedMatrix.length) return; const bWidth = parseInt(document.getElementById('borderWidth').value); const bColorIdx = parseInt(document.getElementById('borderColor').value || 0);
-            let newMat = []; const h = generatedMatrix.length; const w = generatedMatrix[0].length;
-            for(let y=0; y<h; y++) { let row = []; for(let x=0; x<w; x++) { if(x < bWidth || x >= w - bWidth || y < bWidth || y >= h - bWidth) { row.push(bColorIdx); } else { row.push(generatedMatrix[y][x]); } } newMat.push(row); }
-            finalMatrix = newMat; drawPreview(finalMatrix[0].length, finalMatrix.length); updateStats(); if(document.getElementById('instructionView').style.display === 'block') drawGrid();
+            if(!generatedMatrix.length) return; 
+            const bWidth = parseInt(document.getElementById('borderWidth').value); 
+            const bColorIdx = parseInt(document.getElementById('borderColor').value || 0);
+            
+            let newMat = []; 
+            const h = generatedMatrix.length; 
+            const w = generatedMatrix[0].length;
+            
+            for(let y=0; y<h; y++) { 
+                let row = []; 
+                for(let x=0; x<w; x++) { 
+                    if(x < bWidth || x >= w - bWidth || y < bWidth || y >= h - bWidth) { 
+                        row.push(bColorIdx); 
+                    } else { 
+                        row.push(generatedMatrix[y][x]); 
+                    }
+                } 
+                newMat.push(row); 
+            }
+            finalMatrix = newMat; 
+
+            // Обновляем надпись с размером
+            const finalH = finalMatrix.length;
+            const finalW = finalMatrix.length > 0 ? finalMatrix[0].length : 0;
+            const label = document.getElementById('resultLabel');
+            if (label) {
+                label.innerText = `РЕЗУЛЬТАТ ${finalW}x${finalH}`;
+            }
+
+            // Если палитра отображения пустая ИЛИ мы вышли из режима склада — сбрасываем на дефолт
+            if(displayPalette.length === 0 || !isStockMode) {
+                displayPalette = [...currentPalette];
+                displaySymbols = [...currentSymbolSet];
+            }
+            
+            drawPreview(finalMatrix[0].length, finalMatrix.length); 
+            updateStats(); 
+            if(document.getElementById('instructionView').style.display === 'block') drawGrid();
         }
 
         function processImage() {
-            if(!sourceImage) return; const preset = document.getElementById('palettePreset').value; let w, h; if(document.getElementById('setSize').value === 'custom') { w = parseInt(document.getElementById('customWidth').value) || 50; h = parseInt(document.getElementById('customHeight').value) || 50; } else { w = h = parseInt(document.getElementById('setSize').value); }
+            // Режим "Свой AI"
+            if (isStockMode) {
+                if (window.stockTimeout) clearTimeout(window.stockTimeout);
+                window.stockTimeout = setTimeout(processStockImage, 50); 
+                return;
+            }
+
+            if(!sourceImage) return; 
+            const preset = document.getElementById('palettePreset').value; let w, h; if(document.getElementById('setSize').value === 'custom') { w = parseInt(document.getElementById('customWidth').value) || 50; h = parseInt(document.getElementById('customHeight').value) || 50; } else { w = h = parseInt(document.getElementById('setSize').value); }
             
             const resolutionFactor = 4;
             const workW = w * resolutionFactor; const workH = h * resolutionFactor; 
-            const workCanvas = document.createElement('canvas'); workCanvas.width = workW; workCanvas.height = workH; const workCtx = workCanvas.getContext('2d');
+            const workCanvas = document.createElement('canvas'); workCanvas.width = workW; workCanvas.height = workH; const workCtx = workCanvas.getContext('2d', { willReadFrequently: true });
             
             const zoom = document.getElementById('zoom').value / 100; const contrast = document.getElementById('contrast').value; const brightness = document.getElementById('brightness').value;
             workCtx.filter = `contrast(${contrast}%) brightness(${brightness}%)`; const px = (document.getElementById('panX').value / 100) * workW; const py = (document.getElementById('panY').value / 100) * workH; 
@@ -1175,7 +1443,7 @@ transition: transform 0.2s ease-out; /* Добавь это здесь, а не 
 
             workCtx.putImageData(workImgData, 0, 0);
 
-            const canvas = document.getElementById('procCanvas'); const ctx = canvas.getContext('2d'); canvas.width = w; canvas.height = h; 
+            const canvas = document.getElementById('procCanvas'); const ctx = canvas.getContext('2d', { willReadFrequently: true }); canvas.width = w; canvas.height = h; 
             ctx.drawImage(workCanvas, 0, 0, w, h);
             
             const imgData = ctx.getImageData(0,0,w,h); const finalData = imgData.data; 
@@ -1215,7 +1483,7 @@ transition: transform 0.2s ease-out; /* Добавь это здесь, а не 
             cvs.height = h * scale; 
             finalMatrix.forEach((row, y) => { 
                 row.forEach((idx, x) => { 
-                    ctx.fillStyle = currentPalette[idx]; 
+                    ctx.fillStyle = displayPalette[idx] || currentPalette[idx] || '#000'; 
                     ctx.fillRect(x*scale, y*scale, scale, scale); 
                 }); 
             }); 
@@ -1223,7 +1491,8 @@ transition: transform 0.2s ease-out; /* Добавь это здесь, а не 
         function renderPaletteUI() { const c = document.getElementById('paletteContainer'); c.innerHTML = ''; currentPalette.forEach((col, i) => { const d = document.createElement('div'); const isActive = (selectedBrushIndex === i) && isPencil; const preset = document.getElementById('palettePreset').value; const isRestricted = ['bw', 'popart'].includes(preset); const isEditable = !isRestricted; d.className = 'palette-item' + (isActive ? ' active-brush' : '') + (isEditable ? ' editable' : ' disabled'); d.style.background = col; d.innerHTML = `<span class="pal-sym" style="color:${getContrastColor(col)}">${currentSymbolSet[i] || "?"}</span>`; d.onclick = (e) => { if(e.target.tagName === 'INPUT') return; if (isPencil) { selectedBrushIndex = i; renderPaletteUI(); } else { if(isEditable) { const inp = d.querySelector('input'); if(inp) inp.click(); } } }; if(isEditable) { const inp = document.createElement('input'); inp.type = 'color'; inp.value = col; inp.onclick = (e) => { if(isPencil) { e.preventDefault(); e.stopPropagation(); selectedBrushIndex = i; renderPaletteUI(); return false; } e.stopPropagation(); }; inp.oninput = (e) => { e.stopPropagation(); currentPalette[i] = e.target.value; d.style.background = e.target.value; drawPreview(finalMatrix[0].length, finalMatrix.length); if(document.getElementById('instructionView').style.display === 'block') drawGrid(); updateStats(); }; inp.onchange = (e) => pushHistory(); d.appendChild(inp); } c.appendChild(d); }); }
         function hexToRgb(hex) { const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex); return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : {r:0,g:0,b:0}; }
         function toggleTheme() { const b = document.body; b.setAttribute('data-theme', b.getAttribute('data-theme')==='light'?'dark':'light'); }
-        function saveProject() { if(!sourceImage) return; const data = { palette: currentPalette, aiBase: aiBasePalette, hiddenRegions: Array.from(hiddenRegions), settings: { zoom: document.getElementById('zoom').value, contrast: document.getElementById('contrast').value, brightness: document.getElementById('brightness').value, panX: document.getElementById('panX').value, panY: document.getElementById('panY').value, size: document.getElementById('setSize').value, cW: document.getElementById('customWidth').value, cH: document.getElementById('customHeight').value, cc: document.getElementById('colorCount').value, preset: document.getElementById('palettePreset').value, sharpness: document.getElementById('sharpness').value, smartBlur: document.getElementById('smartBlur').value, posterize: document.getElementById('posterize').value, usmRadius: document.getElementById('usmRadius').value }, img: sourceImage.src }; let name = prompt("Введите имя файла:", "photobrick_project"); if (name === null) return; if (!name) name = "photobrick_project"; if (!name.endsWith(".json")) name += ".json"; const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'})); a.download = name; a.click(); }
+        function saveProject() { if(!sourceImage) return; 
+const data = { palette: currentPalette, stockAssists: stockAssists, aiBase: aiBasePalette, hiddenRegions: Array.from(hiddenRegions), settings: { zoom: document.getElementById('zoom').value, contrast: document.getElementById('contrast').value, brightness: document.getElementById('brightness').value, panX: document.getElementById('panX').value, panY: document.getElementById('panY').value, size: document.getElementById('setSize').value, cW: document.getElementById('customWidth').value, cH: document.getElementById('customHeight').value, cc: document.getElementById('colorCount').value, preset: document.getElementById('palettePreset').value, sharpness: document.getElementById('sharpness').value, smartBlur: document.getElementById('smartBlur').value, posterize: document.getElementById('posterize').value, usmRadius: document.getElementById('usmRadius').value }, img: sourceImage.src }; let name = prompt("Введите имя файла:", "photobrick_project"); if (name === null) return; if (!name) name = "photobrick_project"; if (!name.endsWith(".json")) name += ".json"; const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'})); a.download = name; a.click(); }
 
         function resetStylesOnly() { 
             pushHistory(); 
@@ -1278,9 +1547,21 @@ transition: transform 0.2s ease-out; /* Добавь это здесь, а не 
             renderPaletteUI(); 
             if(sourceImage) processImage(); 
         }
-        
         function refreshSmartPalette() { 
-            pushHistory(); const val = document.getElementById('palettePreset').value; const shift = (val, range) => Math.max(0, Math.min(200, val + (Math.random() * range * 2 - range)));
+            pushHistory(); 
+            const val = document.getElementById('palettePreset').value; 
+
+            // --- ИСПРАВЛЕНИЕ ДЛЯ "Свой AI" ---
+            if (val === 'custom_ai') {
+                isStockMode = true; 
+                // Просто запускаем пересчет картинки с ТЕКУЩИМИ настройками
+                processStockImage(); 
+                return;
+            }
+            // ----------------------------------
+
+            const shift = (val, range) => Math.max(0, Math.min(200, val + (Math.random() * range * 2 - range)));
+            
             if (val === 'bw') {
                  extractPaletteQuantized(); aiBasePalette = [...currentPalette]; currentPalette = [...PRESETS['bw']];
             }
@@ -1291,7 +1572,6 @@ transition: transform 0.2s ease-out; /* Добавь это здесь, а не 
                 aiBasePalette = [...currentPalette];
                 currentPalette = savedColors;
             } 
-            else if(val === 'custom_ai') { extractPaletteQuantized(); aiBasePalette = [...currentPalette]; }
             else if(val === 'original') extractPaletteQuantized(); 
             else if (val === 'random_chaos') { generateChaosPalette(); } 
             else if (val === 'smart_neon') { 
@@ -1303,7 +1583,8 @@ transition: transform 0.2s ease-out; /* Добавь это здесь, а не 
             else if (val === 'popart') { 
                 extractPaletteQuantized(); aiBasePalette = [...currentPalette]; currentPalette = [...LEGO_PALETTE]; 
             }
-            renderPaletteUI(); if(sourceImage) processImage(); 
+            renderPaletteUI(); 
+            if(sourceImage) processImage(); 
         }
         function rgbToHex(r, g, b) { return "#" + [r, g, b].map(x => Math.round(x).toString(16).padStart(2, '0')).join(''); }
         function getContrastColor(hex) { const r = parseInt(hex.substr(1,2),16), g = parseInt(hex.substr(3,2),16), b = parseInt(hex.substr(5,2),16); return (r*0.299 + g*0.587 + b*0.114) > 186 ? '#000' : '#fff'; }
@@ -1319,20 +1600,114 @@ transition: transform 0.2s ease-out; /* Добавь это здесь, а не 
         }
         
         function updateStats() {
-            const flat = finalMatrix.flat(); const counts = new Array(currentPalette.length).fill(0); flat.forEach(i => { if(counts[i] !== undefined) counts[i]++; });
-            const preset = document.getElementById('palettePreset').value; const isRestricted = ['bw', 'popart'].includes(preset); const isEditable = !isRestricted; 
-            const borderSel = document.getElementById('borderColor'); const oldBorder = borderSel.value; borderSel.innerHTML = '';
-            const statsContainer = document.getElementById('statsContent'); const existingRows = statsContainer.querySelectorAll('.stat-row'); const shouldRebuild = existingRows.length !== currentPalette.length;
-
-            if (shouldRebuild) {
-                statsContainer.innerHTML = ''; counts.forEach((c, i) => { const sym = currentSymbolSet[i] || "?"; const row = document.createElement('div'); row.className = 'stat-row'; row.style.display = 'flex'; row.style.justifyContent = 'space-between'; row.style.marginBottom = '2px'; row.style.fontSize = '11px'; const colorSpan = document.createElement('span'); colorSpan.id = `stat-circle-${i}`; colorSpan.style.display = 'inline-flex'; colorSpan.style.justifyContent = 'center'; colorSpan.style.alignItems = 'center'; colorSpan.style.width = '14px'; colorSpan.style.height = '14px'; colorSpan.style.borderRadius = '50%'; colorSpan.style.background = currentPalette[i]; colorSpan.style.marginRight = '5px'; colorSpan.style.position = 'relative'; colorSpan.style.fontSize = '9px'; colorSpan.style.fontWeight = '900'; colorSpan.style.color = getContrastColor(currentPalette[i]); colorSpan.innerText = sym; if(isEditable) { const inp = document.createElement('input'); inp.type = 'color'; inp.value = currentPalette[i]; inp.style.position = 'absolute'; inp.style.top = '0'; inp.style.left = '0'; inp.style.opacity = '0'; inp.style.width = '100%'; inp.style.height = '100%'; inp.style.cursor = 'pointer'; inp.oninput = (e) => handleStatColorChange(i, e.target.value); inp.onchange = () => pushHistory(); colorSpan.appendChild(inp); } const textSpan = document.createElement('span'); textSpan.appendChild(colorSpan); const symText = document.createElement('span'); symText.id = `stat-sym-text-${i}`; symText.innerText = sym; textSpan.appendChild(symText); const countBold = document.createElement('b'); countBold.id = `stat-count-${i}`; countBold.innerText = c; row.appendChild(textSpan); row.appendChild(countBold); statsContainer.appendChild(row); const opt = document.createElement('option'); opt.value = i; opt.innerText = `Цвет ${sym}`; opt.style.background = currentPalette[i]; opt.style.color = getContrastColor(currentPalette[i]); borderSel.appendChild(opt); });
-            } else {
-                 counts.forEach((c, i) => { const sym = currentSymbolSet[i] || "?"; const countEl = document.getElementById(`stat-count-${i}`); if(countEl) countEl.innerText = c; const symText = document.getElementById(`stat-sym-text-${i}`); if(symText) symText.innerText = sym; const circleEl = document.getElementById(`stat-circle-${i}`); if(circleEl) { circleEl.style.background = currentPalette[i]; circleEl.style.color = getContrastColor(currentPalette[i]); circleEl.innerText = sym; if(isEditable && !circleEl.querySelector('input')) { const inp = document.createElement('input'); inp.type = 'color'; inp.value = currentPalette[i]; inp.style.position = 'absolute'; inp.style.top = '0'; inp.style.left = '0'; inp.style.opacity = '0'; inp.style.width = '100%'; inp.style.height = '100%'; inp.style.cursor = 'pointer'; inp.oninput = (e) => handleStatColorChange(i, e.target.value); inp.onchange = () => pushHistory(); circleEl.appendChild(inp); } else if (isEditable && circleEl.querySelector('input')) { circleEl.querySelector('input').value = currentPalette[i]; } } const opt = document.createElement('option'); opt.value = i; opt.innerText = `Цвет ${sym}`; opt.style.background = currentPalette[i]; opt.style.color = getContrastColor(currentPalette[i]); borderSel.appendChild(opt); });
+            // Если включен режим Свой AI, рисуем поля ввода, а не обычную статистику
+            if (isStockMode) {
+                // Если мы сейчас печатаем в инпуте, не перерисовываем DOM, чтобы не слетал фокус
+                if (document.activeElement && document.activeElement.classList.contains('stock-input-field')) {
+                    return; 
+                }
+                
+                renderStockInputs();
+                return;
             }
-            const total = flat.length; document.getElementById('totalBricks').innerText = total; const price = parseFloat(document.getElementById('brickPrice').value) || 0; document.getElementById('totalCost').innerText = (total * price).toFixed(2) + " ₽"; borderSel.value = oldBorder || 0;
+
+            const flat = finalMatrix.flat(); 
+            const counts = new Array(currentPalette.length).fill(0); 
+            flat.forEach(i => { if(counts[i] !== undefined) counts[i]++; });
+            
+            const preset = document.getElementById('palettePreset').value; 
+            const isRestricted = ['bw', 'popart'].includes(preset); 
+            const isEditable = !isRestricted; 
+            const borderSel = document.getElementById('borderColor'); 
+            const oldBorder = borderSel.value; 
+            borderSel.innerHTML = '';
+            
+            const statsContainer = document.getElementById('statsContent'); 
+            
+            statsContainer.innerHTML = ''; // Всегда перерисовываем для чистоты
+            
+            counts.forEach((c, i) => { 
+                const sym = currentSymbolSet[i] || "?"; 
+                const row = document.createElement('div'); 
+                row.className = 'stat-row'; 
+                row.style.display = 'flex'; 
+                row.style.justifyContent = 'space-between'; 
+                row.style.marginBottom = '2px'; 
+                row.style.fontSize = '11px'; 
+                
+                const colorSpan = document.createElement('span'); 
+                colorSpan.id = `stat-circle-${i}`; 
+                colorSpan.style.display = 'inline-flex'; 
+                colorSpan.style.justifyContent = 'center'; 
+                colorSpan.style.alignItems = 'center'; 
+                colorSpan.style.width = '14px'; 
+                colorSpan.style.height = '14px'; 
+                colorSpan.style.borderRadius = '50%'; 
+                colorSpan.style.background = currentPalette[i]; 
+                colorSpan.style.marginRight = '5px'; 
+                colorSpan.style.position = 'relative'; 
+                colorSpan.style.fontSize = '9px'; 
+                colorSpan.style.fontWeight = '900'; 
+                colorSpan.style.color = getContrastColor(currentPalette[i]); 
+                colorSpan.innerText = sym; 
+                
+                if(isEditable) { 
+                    const inp = document.createElement('input'); 
+                    inp.type = 'color'; 
+                    inp.value = currentPalette[i]; 
+                    inp.style.position = 'absolute'; 
+                    inp.style.top = '0'; 
+                    inp.style.left = '0'; 
+                    inp.style.opacity = '0'; 
+                    inp.style.width = '100%'; 
+                    inp.style.height = '100%'; 
+                    inp.style.cursor = 'pointer'; 
+                    inp.oninput = (e) => handleStatColorChange(i, e.target.value); 
+                    inp.onchange = () => pushHistory(); 
+                    colorSpan.appendChild(inp); 
+                } 
+                
+                const textSpan = document.createElement('span'); 
+                textSpan.appendChild(colorSpan); 
+                const symText = document.createElement('span'); 
+                symText.id = `stat-sym-text-${i}`; 
+                symText.innerText = sym; 
+                textSpan.appendChild(symText); 
+                
+                const countBold = document.createElement('b'); 
+                countBold.id = `stat-count-${i}`; 
+                countBold.innerText = c; 
+                
+                row.appendChild(textSpan); 
+                row.appendChild(countBold); 
+                statsContainer.appendChild(row); 
+                
+                const opt = document.createElement('option'); 
+                opt.value = i; 
+                opt.innerText = `Цвет ${sym}`; 
+                opt.style.background = currentPalette[i]; 
+                opt.style.color = getContrastColor(currentPalette[i]); 
+                borderSel.appendChild(opt); 
+            });
+
+            const total = flat.length; 
+            document.getElementById('totalBricks').innerText = total; 
+            const price = parseFloat(document.getElementById('brickPrice').value) || 0; 
+            document.getElementById('totalCost').innerText = (total * price).toFixed(2) + " ₽"; 
+            borderSel.value = oldBorder || 0;
         }
 
-        function handleStatColorChange(i, val) { currentPalette[i] = val; drawPreview(finalMatrix[0].length, finalMatrix.length); if(document.getElementById('instructionView').style.display === 'block') drawGrid(); renderPaletteUI(); const circleEl = document.getElementById(`stat-circle-${i}`); if(circleEl) { circleEl.style.background = val; circleEl.style.color = getContrastColor(val); } }
+        function handleStatColorChange(i, val) { 
+            currentPalette[i] = val; 
+            drawPreview(finalMatrix[0].length, finalMatrix.length); 
+            if(document.getElementById('instructionView').style.display === 'block') drawGrid(); 
+            renderPaletteUI(); 
+            const circleEl = document.getElementById(`stat-circle-${i}`); 
+            if(circleEl) { 
+                circleEl.style.background = val; 
+                circleEl.style.color = getContrastColor(val); 
+            } 
+        }
 
         function switchTab(t) {
             document.querySelectorAll('.toggle-opt').forEach(b => b.classList.remove('active')); 
@@ -1367,9 +1742,8 @@ transition: transform 0.2s ease-out; /* Добавь это здесь, а не 
             else if(currentSector === 3) { eX = midX; sY = midY; } 
             else if(currentSector === 4) { sX = midX; sY = midY; }
 
-            // --- НОВЫЕ СТРОКИ: ЗАПОМИНАЕМ ГРАНИЦЫ ---
+            // ЗАПОМИНАЕМ ГРАНИЦЫ
             currentGridBounds = { sX, eX, sY, eY };
-            // ----------------------------------------
 
             renderSingleGrid(container, sX, eX, sY, eY, printMode);
             
@@ -1382,15 +1756,90 @@ transition: transform 0.2s ease-out; /* Добавь это здесь, а не 
         }
 
         function renderSingleGrid(container, sX, eX, sY, eY, isPrint) {
-            const visW = eX - sX; const grid = document.createElement('div'); grid.className = 'instruction-grid'; grid.style.gridTemplateColumns = `25px repeat(${visW}, 20px) 280px`;
-            if (isPrint) { grid.style.gridTemplateColumns = `25px repeat(${visW}, 25px) 280px`; }
-            grid.appendChild(createCell('ruler-cell', '')); for(let x=sX; x<eX; x++) { const c = createCell('ruler-cell', x+1); c.setAttribute('data-x', x); if(!isPrint) c.onclick = function() { toggleColVisibility(x); }; grid.appendChild(c); }
-            const infoHeader = document.createElement('div'); infoHeader.className = 'info-header'; infoHeader.innerText = 'ИНФО'; grid.appendChild(infoHeader);
+            const visW = eX - sX; 
+            const grid = document.createElement('div'); 
+            grid.className = 'instruction-grid'; 
+            // Подстраиваем ширину: если печать - чуть шире ячейки
+            const cellW = isPrint ? 25 : 20;
+            grid.style.gridTemplateColumns = `25px repeat(${visW}, ${cellW}px) 280px`;
+
+            // Верхняя линейка
+            grid.appendChild(createCell('ruler-cell', '')); 
+            for(let x=sX; x<eX; x++) { 
+                const c = createCell('ruler-cell', x+1); 
+                c.setAttribute('data-x', x); 
+                if(!isPrint) c.onclick = function() { toggleColVisibility(x); }; 
+                grid.appendChild(c); 
+            }
+            const infoHeader = document.createElement('div'); 
+            infoHeader.className = 'info-header'; 
+            infoHeader.innerText = 'ИНФО (СИМВОЛ : КОЛ-ВО)'; 
+            grid.appendChild(infoHeader);
+
+            // Основная сетка
             for(let y=sY; y<eY; y++) {
-                const rC = createCell('ruler-cell', y+1); rC.setAttribute('data-y', y); if(!isPrint) rC.onclick = function() { toggleRowVisibility(y); }; grid.appendChild(rC);
-                let rCounts = new Array(currentPalette.length).fill(0);
-                for(let x=sX; x<eX; x++) { const idx = finalMatrix[y][x]; rCounts[idx]++; const sym = currentSymbolSet[idx] || "?"; const cell = createCell('cell', sym); cell.style.backgroundColor = currentPalette[idx]; const hex = currentPalette[idx].replace('#',''); const r = parseInt(hex.substr(0,2),16), g = parseInt(hex.substr(2,2),16), b = parseInt(hex.substr(4,2),16); cell.style.color = (r*0.299 + g*0.587 + b*0.114) > 186 ? '#000' : '#fff'; if(!isPrint && isPencil) { cell.onclick = () => { pushHistory(); finalMatrix[y][x] = (finalMatrix[y][x] + 1) % currentPalette.length; drawPreview(finalMatrix[0].length, finalMatrix.length); updateStats(); drawGrid(); }; } grid.appendChild(cell); }
-                const info = document.createElement('div'); info.className = 'row-info'; info.setAttribute('data-y', y); rCounts.forEach((c, i) => { if(c > 0) info.innerHTML += `<span style="padding:1px 3px; border-radius:3px; margin-right:3px; background:${currentPalette[i]}; color:${(parseInt(currentPalette[i].replace('#',''),16) > 0xffffff/2) ? '#000' : '#fff'}">${currentSymbolSet[i] || "?"}:${c}</span>`; }); if(!isPrint) info.onclick = function() { toggleRowVisibility(y); }; grid.appendChild(info);
+                // Номер ряда
+                const rC = createCell('ruler-cell', y+1); 
+                rC.setAttribute('data-y', y); 
+                if(!isPrint) rC.onclick = function() { toggleRowVisibility(y); }; 
+                grid.appendChild(rC);
+
+                let rowStats = {}; 
+
+                for(let x=sX; x<eX; x++) { 
+                    const idx = finalMatrix[y][x]; 
+                    
+                    // Считаем статистику
+                    if (!rowStats[idx]) rowStats[idx] = 0;
+                    rowStats[idx]++;
+
+                    const palCol = displayPalette[idx] || currentPalette[idx] || '#000'; 
+                    const sym = displaySymbols[idx] || "?"; 
+
+                    const cell = createCell('cell', sym); 
+                    cell.style.backgroundColor = palCol; 
+                    
+                    // Цвет текста (контраст)
+                    const hex = palCol.replace('#','');
+                    const r = parseInt(hex.substr(0,2),16), g = parseInt(hex.substr(2,2),16), b = parseInt(hex.substr(4,2),16); 
+                    cell.style.color = (r*0.299 + g*0.587 + b*0.114) > 186 ? '#000' : '#fff'; 
+                    
+                    if(!isPrint && isPencil) { 
+                        cell.onclick = () => { 
+                            pushHistory(); 
+                            // В режиме карандаша перебираем только основные цвета
+                            finalMatrix[y][x] = (finalMatrix[y][x] + 1) % currentPalette.length; 
+                            drawPreview(finalMatrix[0].length, finalMatrix.length); 
+                            updateStats(); 
+                            drawGrid(); 
+                        }; 
+                    } 
+                    grid.appendChild(cell); 
+                }
+
+                // Инфо-панель справа
+                const info = document.createElement('div'); 
+                info.className = 'row-info'; 
+                info.setAttribute('data-y', y); 
+                
+                // Сортируем индексы, чтобы порядок был красивым
+                const presentIndices = Object.keys(rowStats).map(Number).sort((a,b) => a-b);
+                
+                presentIndices.forEach(idx => {
+                    const count = rowStats[idx];
+                    const pCol = displayPalette[idx] || '#000';
+                    const pSym = displaySymbols[idx] || '?';
+                    
+                    // Контраст для текста в инфо
+                    const pHex = pCol.replace('#','');
+                    const pR = parseInt(pHex.substr(0,2),16), pG = parseInt(pHex.substr(2,2),16), pB = parseInt(pHex.substr(4,2),16); 
+                    const textCol = (pR*0.299 + pG*0.587 + pB*0.114) > 186 ? '#000' : '#fff';
+
+                    info.innerHTML += `<span style="padding:1px 4px; border-radius:3px; margin-right:4px; display:inline-block; margin-bottom:2px; background:${pCol}; color:${textCol}; border:1px solid rgba(0,0,0,0.2);">${pSym}:${count}</span>`;
+                });
+
+                if(!isPrint) info.onclick = function() { toggleRowVisibility(y); }; 
+                grid.appendChild(info);
             }
             container.appendChild(grid);
         }
@@ -1780,6 +2229,689 @@ transition: transform 0.2s ease-out; /* Добавь это здесь, а не 
                 resolve(cvs.toDataURL('image/png'));
             });
         }
+function renderStockInputs() {
+            const statsContainer = document.getElementById('statsContent');
+            statsContainer.innerHTML = '';
+            
+            // Считаем факт (с учетом расширенной палитры)
+            const flat = finalMatrix.flat();
+            const usageMap = {}; // displayIdx -> count
+            flat.forEach(i => usageMap[i] = (usageMap[i]||0) + 1);
+
+            // Хедер
+            const headerRow = document.createElement('div');
+            headerRow.style.display = 'flex';
+headerRow.style.justifyContent = 'space-between';
+headerRow.style.alignItems = 'center';
+            headerRow.style.marginBottom = '10px'; headerRow.style.paddingBottom = '5px';
+            headerRow.style.borderBottom = '1px solid rgba(255,255,255,0.1)';
+            
+            const title = document.createElement('div');
+            title.innerHTML = 'СКЛАД (PRO)'; title.style.fontWeight = 'bold'; title.style.fontSize = '11px'; title.style.color = 'var(--primary)';
+            
+            const mixLabel = document.createElement('label');
+            mixLabel.style.display='flex'; mixLabel.style.gap='5px'; mixLabel.style.fontSize='10px';
+            const mixInput = document.createElement('input'); mixInput.type='checkbox'; mixInput.checked = useMixMode;
+            mixInput.onchange = (e) => { useMixMode = e.target.checked; processStockImage(); };
+            mixLabel.appendChild(mixInput); mixLabel.appendChild(document.createTextNode('МЯГКИЙ МИКС'));
+            
+            headerRow.appendChild(title); headerRow.appendChild(mixLabel);
+            statsContainer.appendChild(headerRow);
+
+            // Генерация строк
+            let totalStockSum = 0;
+            
+            currentPalette.forEach((col, i) => {
+                // --- ГЛАВНЫЙ ЦВЕТ ---
+                const row = document.createElement('div');
+                row.className = 'stock-input-row';
+                row.style.background = 'rgba(255,255,255,0.03)';
+                
+                // Лево
+                const info = document.createElement('div'); info.className = 'stock-info';
+                const colorBox = document.createElement('div'); colorBox.className = 'stock-color-preview'; colorBox.style.background = col;
+                const sym = document.createElement('span'); sym.innerText = currentSymbolSet[i] || "?"; sym.style.fontWeight = '900';
+                info.appendChild(colorBox); info.appendChild(sym);
+
+                // Право
+                const rightGroup = document.createElement('div'); rightGroup.style.display = 'flex'; rightGroup.style.alignItems = 'center'; rightGroup.style.gap = '4px';
+
+                // Кнопка +
+                const addBtn = document.createElement('button');
+                addBtn.innerText = '+';
+                addBtn.style.width = '20px'; addBtn.style.height = '20px'; addBtn.style.borderRadius = '50%';
+                addBtn.style.border = '1px solid #555'; addBtn.style.background = 'transparent'; addBtn.style.color = '#fff'; addBtn.style.cursor = 'pointer';
+                addBtn.onclick = () => triggerHelperPicker(i);
+
+                // Факт (i - это индекс в displayPalette, равный i для основных цветов)
+                const used = usageMap[i] || 0;
+                const limit = stockQuantities[i] || 0;
+                totalStockSum += limit;
+
+                const factSpan = document.createElement('span'); factSpan.innerText = used; factSpan.style.fontSize='10px';
+                factSpan.style.color = (limit > 0 && used >= limit) ? '#ff5555' : '#aaa';
+                
+                const input = document.createElement('input');
+                input.type = 'number'; input.className = 'stock-input-field'; input.style.width='50px';
+                input.value = limit; input.oninput = (e) => { 
+    stockQuantities[i] = parseInt(e.target.value)||0; 
+    processImage(); // Запускаем пересчет картинки, а не перерисовку инпутов
+};
+
+                rightGroup.appendChild(addBtn);
+                rightGroup.appendChild(factSpan);
+                rightGroup.appendChild(document.createTextNode('/'));
+                rightGroup.appendChild(input);
+                
+                row.appendChild(info); row.appendChild(rightGroup);
+                statsContainer.appendChild(row);
+
+                // --- ПОМОЩНИКИ ---
+                if (stockAssists[i]) {
+                    stockAssists[i].forEach((assist, aIdx) => {
+                        const subRow = document.createElement('div');
+                        subRow.className = 'stock-input-row';
+                        subRow.style.marginLeft = '20px'; // Отступ
+                        subRow.style.borderLeft = '2px solid ' + col; // Связь с родителем
+                        subRow.style.background = 'transparent';
+
+                        const sInfo = document.createElement('div'); sInfo.className = 'stock-info';
+                        const sBox = document.createElement('div'); 
+                        sBox.className = 'stock-color-preview'; 
+                        sBox.style.background = assist.hex; 
+                        sBox.style.width='14px'; 
+                        sBox.style.height='14px';
+                        sBox.style.cursor = 'pointer'; // Показываем, что можно нажать
+                        sBox.title = 'Нажми, чтобы изменить цвет';
+                        sBox.style.border = '1px solid #fff';
+                        sBox.onclick = () => triggerHelperPicker(i, assist.id)
+
+                        const sSym = document.createElement('span'); sSym.innerText = '↳'; sSym.style.fontSize='10px';
+                        sInfo.appendChild(sSym); sInfo.appendChild(sBox);
+                        
+                        const sRight = document.createElement('div'); sRight.style.display = 'flex'; sRight.style.alignItems = 'center'; sRight.style.gap = '4px';
+                        
+                        // Удалить
+                        const delBtn = document.createElement('button'); delBtn.innerText = '×';
+                        delBtn.style.color = '#ff5555'; delBtn.style.background='none'; delBtn.style.border='none'; delBtn.style.cursor='pointer';
+                        delBtn.onclick = () => removeAssistant(i, assist.id);
+
+                        // Факт помощника (нужно найти его displayIdx)
+                        // Мы не знаем его displayIdx здесь легко, но мы можем перебрать displayPalette
+                        // Это немного дорого, но для UI пойдет
+                        let assistDisplayIdx = -1;
+                        // Ищем индекс в displayPalette, начиная с 12
+                        for(let d=currentPalette.length; d<displayPalette.length; d++) {
+                             if(displayPalette[d] === assist.hex && displaySymbols[d].startsWith(currentSymbolSet[i])) {
+                                 // Это упрощенная проверка. В идеале ID хранить.
+                                 // Но так как мы перерисовываем все, считаем по цвету
+                             }
+                        }
+                        // Для точности, давайте просто покажем лимит. Факт сложно привязать без ID в displayPalette.
+                        // Или просто покажем "Input"
+                        
+                        const sInput = document.createElement('input');
+                        sInput.type = 'number'; sInput.className = 'stock-input-field'; sInput.style.width='45px';
+                        sInput.value = assist.qty; 
+                        sInput.oninput = (e) => { 
+    assist.qty = parseInt(e.target.value)||0; 
+    processImage(); // То же самое здесь
+};
+                        totalStockSum += assist.qty;
+
+                        sRight.appendChild(delBtn);
+                        sRight.appendChild(sInput);
+                        
+                        subRow.appendChild(sInfo);
+                        subRow.appendChild(sRight);
+                        statsContainer.appendChild(subRow);
+                    });
+                }
+            });
+
+            document.getElementById('totalBricks').innerText = `${flat.length} / ${totalStockSum}`;
+        }
+// --- ГЛАВНАЯ ФУНКЦИЯ ДЛЯ РЕЖИМА "СВОЙ AI" (v5.0 - Исправленная) ---
+        // --- ГЛАВНАЯ ФУНКЦИЯ ДЛЯ РЕЖИМА "СВОЙ AI" (v6.0 - Helper Logic Update) ---
+        function processStockImage() {
+            if (!sourceImage || !isStockMode) return;
+
+            // 1. Сброс и подготовка
+            const count = parseInt(document.getElementById('colorCount').value);
+            
+            // Синхронизируем массив количеств
+            while(stockQuantities.length < count) stockQuantities.push(0);
+            updateCustomColorCount(count); 
+            
+            displayPalette = [...currentPalette];
+            displaySymbols = [...currentSymbolSet];
+
+            // --- НОВАЯ ЛОГИКА: ОПРЕДЕЛЯЕМ, КТО ЯВЛЯЕТСЯ ПОМОЩНИКОМ ---
+            const helperIndices = new Set(); // Индексы цветов, которые стали "рабами" (помощниками)
+            const mainToHelpersMap = {}; // Карта: ГлавныйИндекс -> [ИндексПомощника1, ИндексПомощника2...]
+
+            // 1. Проходим по всем назначенным помощникам и ищем их в основной палитре
+            for (let mainIdx in stockAssists) {
+                stockAssists[mainIdx].forEach(assist => {
+                    // Ищем, есть ли hex этого помощника в текущей палитре
+                    // (Игнорируем регистр символов для надежности)
+                    const idxInPalette = currentPalette.findIndex(c => c.toLowerCase() === assist.hex.toLowerCase());
+                    
+                    // Если цвет найден в палитре и он не является самим собой (защита от циклов)
+                    if (idxInPalette !== -1 && idxInPalette != mainIdx) {
+                        helperIndices.add(idxInPalette);
+                        
+                        if (!mainToHelpersMap[mainIdx]) mainToHelpersMap[mainIdx] = [];
+                        mainToHelpersMap[mainIdx].push(idxInPalette);
+                    }
+                });
+            }
+
+            // --- СОБИРАЕМ ИНВЕНТАРЬ (Inventory Groups) ---
+            let inventoryGroups = [];
+            
+            for(let i=0; i<count; i++) {
+                // ВАЖНО: Если цвет является помощником (есть в helperIndices), 
+                // мы НЕ создаем для него отдельную группу. Он "исчезает" как самостоятельная единица.
+                if (helperIndices.has(i)) continue;
+
+                const mainHex = currentPalette[i];
+                if (!mainHex) continue;
+
+                let group = {
+                    mainIdx: i,
+                    lum: getLum(mainHex), // Сортировка будет по яркости ОСНОВНОГО цвета
+                    items: []
+                };
+
+                // 1. Добавляем "Хозяина" (Основной цвет)
+                // Используем его родное количество stockQuantities[i]
+                group.items.push({ 
+                    type: 'main', 
+                    hex: mainHex, 
+                    qty: stockQuantities[i], 
+                    displayIdx: i 
+                });
+
+                // 2. Добавляем "Помощников" (которые есть в палитре)
+                if (mainToHelpersMap[i]) {
+                    mainToHelpersMap[i].forEach(hIdx => {
+                        // Берем количество из запаса самого помощника!
+                        const hQty = stockQuantities[hIdx];
+                        const hHex = currentPalette[hIdx];
+                        
+                        group.items.push({ 
+                            type: 'palette_assist', // Новый тип: помощник из палитры
+                            hex: hHex, 
+                            qty: hQty, 
+                            displayIdx: hIdx // Сохраняем его оригинальный индекс для отображения
+                        });
+                    });
+                }
+
+                // 3. Добавляем "Внешних помощников" (которых НЕТ в палитре, если такие добавлены вручную через пипетку, но не привязаны к банкам)
+                if (stockAssists[i]) {
+                    stockAssists[i].forEach(assist => {
+                         const idxInPalette = currentPalette.findIndex(c => c.toLowerCase() === assist.hex.toLowerCase());
+                         // Добавляем только тех, кого мы НЕ обработали на шаге 2 (т.е. внешние цвета)
+                         if (idxInPalette === -1) {
+                            group.items.push({ 
+                                type: 'external_assist', 
+                                hex: assist.hex, 
+                                qty: assist.qty, 
+                                assistId: assist.id 
+                            });
+                         }
+                    });
+                }
+
+                group.totalQty = group.items.reduce((sum, item) => sum + item.qty, 0);
+                inventoryGroups.push(group);
+            }
+
+            // Сортируем группы по яркости для корректной работы алгоритма подбора
+            inventoryGroups.sort((a, b) => a.lum - b.lum);
+            
+            const totalSystemStock = inventoryGroups.reduce((sum, grp) => sum + grp.totalQty, 0);
+            if (totalSystemStock <= 0) return; // Если склад пуст, нечего считать
+
+            // --- 2. ОБРАБОТКА ИЗОБРАЖЕНИЯ (High Quality Filters) ---
+            // ... (Дальше код остается без изменений до конца функции) ...
+            // --- 2. ОБРАБОТКА ИЗОБРАЖЕНИЯ (High Quality Filters) ---
+            // Чтобы резкость работала как надо, сначала обрабатываем большую картинку
+            const processW = 800; 
+            const imgAspect = sourceImage.width / sourceImage.height;
+            const processH = Math.floor(processW / imgAspect);
+
+            const workCanvas = document.createElement('canvas');
+            workCanvas.width = processW; workCanvas.height = processH;
+            const workCtx = workCanvas.getContext('2d', { willReadFrequently: true });
+
+            // Применяем зум и сдвиг
+            const zoom = document.getElementById('zoom').value / 100;
+            const px = (document.getElementById('panX').value / 100) * processW;
+            const py = (document.getElementById('panY').value / 100) * processH;
+            
+            let drawW, drawH;
+            const canvasAspect = processW / processH;
+            if(imgAspect > canvasAspect) {
+                drawH = processH * zoom; drawW = processH * imgAspect * zoom;
+            } else {
+                drawW = processW * zoom; drawH = (processW / imgAspect) * zoom;
+            }
+
+            // Фильтры CSS (быстрые)
+            const contrast = document.getElementById('contrast').value;
+            const brightness = document.getElementById('brightness').value;
+            workCtx.filter = `contrast(${contrast}%) brightness(${brightness}%)`;
+            
+            workCtx.drawImage(sourceImage, (processW - drawW) / 2 + px, (processH - drawH) / 2 + py, drawW, drawH);
+            workCtx.filter = 'none';
+
+            let imgData = workCtx.getImageData(0, 0, processW, processH);
+            let data = imgData.data;
+
+            // --- ПРИМЕНЕНИЕ JS ФИЛЬТРОВ (Резкость, Блюр, Постеризация) ---
+            
+            // A. Smart Blur
+            const smartBlur = parseInt(document.getElementById('smartBlur').value);
+            if(smartBlur > 0) { 
+                const copy = new Uint8ClampedArray(data);
+                const radius = 2; 
+                for(let y=0; y<processH; y++) { 
+                    for(let x=0; x<processW; x++) { 
+                        let rSum=0, gSum=0, bSum=0, count=0; 
+                        const idx = (y*processW+x)*4; const r0 = copy[idx], g0=copy[idx+1], b0=copy[idx+2]; 
+                        for(let dy=-radius; dy<=radius; dy++) { 
+                            for(let dx=-radius; dx<=radius; dx++) { 
+                                const nx=x+dx; const ny=y+dy; 
+                                if(nx>=0 && nx<processW && ny>=0 && ny<processH) { 
+                                    const nIdx = (ny*processW+nx)*4; 
+                                    const diff = Math.abs(copy[nIdx]-r0) + Math.abs(copy[nIdx+1]-g0) + Math.abs(copy[nIdx+2]-b0); 
+                                    if(diff <= smartBlur * 2.5) { rSum+=copy[nIdx]; gSum+=copy[nIdx+1]; bSum+=copy[nIdx+2]; count++; } 
+                                } 
+                            } 
+                        } 
+                        if(count > 0) { data[idx] = rSum/count; data[idx+1] = gSum/count; data[idx+2] = bSum/count; } 
+                    } 
+                } 
+            }
+
+            // B. Sharpness (USM)
+            const sharpAmount = parseInt(document.getElementById('sharpness').value);
+            const usmRadius = parseInt(document.getElementById('usmRadius').value) || 0;
+            if (sharpAmount > 0 && usmRadius > 0) {
+                 const blurred = new Uint8ClampedArray(data);
+                 const r = usmRadius; 
+                 const w = processW; const h_ = processH;
+                 const temp = new Uint8ClampedArray(data);
+                 // Horz
+                 for(let y=0; y<h_; y++) {
+                     for(let x=0; x<w; x++) {
+                         let rS=0, gS=0, bS=0, cnt=0;
+                         for(let i = -r; i <= r; i++) {
+                             let nx = x + i;
+                             if(nx >= 0 && nx < w) {
+                                 let idx = (y * w + nx) * 4;
+                                 rS += temp[idx]; gS += temp[idx+1]; bS += temp[idx+2]; cnt++;
+                             }
+                         }
+                         let idx = (y * w + x) * 4;
+                         blurred[idx] = rS/cnt; blurred[idx+1] = gS/cnt; blurred[idx+2] = bS/cnt;
+                     }
+                 }
+                 // Vert
+                 const temp2 = new Uint8ClampedArray(blurred);
+                 for(let x=0; x<w; x++) {
+                     for(let y=0; y<h_; y++) {
+                         let rS=0, gS=0, bS=0, cnt=0;
+                         for(let i = -r; i <= r; i++) {
+                             let ny = y + i;
+                             if(ny >= 0 && ny < h_) {
+                                 let idx = (ny * w + x) * 4;
+                                 rS += temp2[idx]; gS += temp2[idx+1]; bS += temp2[idx+2]; cnt++;
+                             }
+                         }
+                         let idx = (y * w + x) * 4;
+                         blurred[idx] = rS/cnt; blurred[idx+1] = gS/cnt; blurred[idx+2] = bS/cnt;
+                     }
+                 }
+                 // Mix
+                 const amount = sharpAmount / 100;
+                 for (let i = 0; i < data.length; i += 4) {
+                     data[i] = Math.min(255, Math.max(0, data[i] + (data[i] - blurred[i]) * amount));
+                     data[i+1] = Math.min(255, Math.max(0, data[i+1] + (data[i+1] - blurred[i+1]) * amount));
+                     data[i+2] = Math.min(255, Math.max(0, data[i+2] + (data[i+2] - blurred[i+2]) * amount));
+                 }
+            }
+
+            // C. Posterize
+            const levels = parseInt(document.getElementById('posterize').value);
+            if (levels > 0) {
+                const step = 255 / levels;
+                for(let i=0; i < data.length; i+=4) {
+                    data[i] = Math.floor(data[i] / step) * step;
+                    data[i+1] = Math.floor(data[i+1] / step) * step;
+                    data[i+2] = Math.floor(data[i+2] / step) * step;
+                }
+            }
+            
+            // Сохраняем обработанную картинку
+            workCtx.putImageData(imgData, 0, 0);
+
+            // --- 3. ПОДГОТОВКА К СИМУЛЯЦИИ (Даунскейл) ---
+            const maxSimW = 150; 
+            const simH = Math.floor(maxSimW / imgAspect);
+            const simCanvas = document.createElement('canvas');
+            simCanvas.width = maxSimW; simCanvas.height = simH;
+            const simCtx = simCanvas.getContext('2d', { willReadFrequently: true });
+            
+            simCtx.drawImage(workCanvas, 0, 0, maxSimW, simH);
+            const loopData = simCtx.getImageData(0, 0, maxSimW, simH).data;
+
+            // --- 4. АЛГОРИТМ ПОДБОРА БЛОКОВ ---
+            let bestMatrix = [];
+            let bestW = 10;
+            let bestH = Math.floor(10 / imgAspect);
+            const OVERLAP_THRESHOLD = 0.75; 
+
+            // Перебираем размеры от 15 до 150
+            for (let w = 15; w <= 150; w++) {
+                let h = Math.floor(w / imgAspect);
+                if(h < 15) continue;
+                
+                // Быстрый ресайз для текущей итерации
+                const tCanvas = document.createElement('canvas'); tCanvas.width = w; tCanvas.height = h;
+                tCanvas.getContext('2d').drawImage(simCanvas, 0, 0, w, h);
+                const currentData = tCanvas.getContext('2d').getImageData(0, 0, w, h).data;
+
+                // Клон запасов
+                let tempGroupCounts = inventoryGroups.map(g => g.totalQty);
+                let currentMatrix = []; 
+                let possible = true; 
+
+                for (let y = 0; y < h; y++) {
+                    let row = [];
+                    for (let x = 0; x < w; x++) {
+                        const i = (y * w + x) * 4;
+                        const lum = (0.299 * currentData[i] + 0.587 * currentData[i+1] + 0.114 * currentData[i+2]) / 255; 
+                        
+                        let floatIdx = lum * (inventoryGroups.length - 1);
+                        let primaryIdx;
+                        
+                        if (useMixMode) {
+                            let idxFloor = Math.floor(floatIdx);
+                            let chance = floatIdx - idxFloor; 
+                            primaryIdx = (Math.random() < chance) ? idxFloor + 1 : idxFloor;
+                        } else {
+                            primaryIdx = Math.round(floatIdx);
+                        }
+                        
+                        if (primaryIdx < 0) primaryIdx = 0;
+                        if (primaryIdx >= inventoryGroups.length) primaryIdx = inventoryGroups.length - 1;
+
+                        let chosenGrpIdx = -1;
+                        if (tempGroupCounts[primaryIdx] > 0) {
+                            chosenGrpIdx = primaryIdx;
+                        } else {
+                            // Пробуем соседей
+                            let neighborIdx = (floatIdx < primaryIdx) ? primaryIdx - 1 : primaryIdx + 1;
+                            if (neighborIdx >= 0 && neighborIdx < inventoryGroups.length) {
+                                let dist = Math.abs(floatIdx - neighborIdx);
+                                if (dist <= OVERLAP_THRESHOLD && tempGroupCounts[neighborIdx] > 0) {
+                                    chosenGrpIdx = neighborIdx;
+                                }
+                            }
+                        }
+
+                        if (chosenGrpIdx !== -1) {
+                            tempGroupCounts[chosenGrpIdx]--;
+                            row.push(chosenGrpIdx);
+                        } else {
+                            possible = false; break; 
+                        }
+                    }
+                    if (!possible) break;
+                    currentMatrix.push(row);
+                }
+
+                if (possible) {
+                    bestMatrix = currentMatrix;
+                    bestW = w;
+                    bestH = h;
+                } else {
+                    break;
+                }
+            }
+
+           // --- 5. ФИНАЛИЗАЦИЯ (ВЕРСИЯ: РАВНОМЕРНЫЙ МИКС ПРИ ДЕФИЦИТЕ) ---
+            if (bestMatrix.length > 0) {
+                document.getElementById('setSize').value = 'custom';
+                document.getElementById('customSizeGroup').style.display = 'flex';
+                document.getElementById('customWidth').value = bestW;
+                document.getElementById('customHeight').value = bestH;
+
+                let assistMap = {}; 
+                // Создаем пустую матрицу результата
+                let finalMatrixResult = Array.from({length: bestH}, () => new Array(bestW).fill(0));
+                
+                // 1. Группируем координаты по индексу группы
+                // map: groupIndex -> [ {x, y}, {x, y}, ... ]
+                let groupCoords = {};
+                for(let y=0; y<bestH; y++) {
+                    for(let x=0; x<bestW; x++) {
+                        let gIdx = bestMatrix[y][x];
+                        if(!groupCoords[gIdx]) groupCoords[gIdx] = [];
+                        groupCoords[gIdx].push({x, y});
+                    }
+                }
+
+                // 2. Обрабатываем каждую группу
+                for (let gIdx in groupCoords) {
+                    let coords = groupCoords[gIdx];
+                    let group = inventoryGroups[gIdx];
+                    let demand = coords.length; // Сколько всего нужно кубиков этого цвета
+
+                    let bucket = []; // Виртуальное ведро с кубиками для этой зоны
+
+                    // А. Сначала черпаем ОСНОВНУЮ краску
+                    const mainItem = group.items.find(it => it.type === 'main');
+                    let mainQtyToUse = 0;
+                    if (mainItem) {
+                        mainQtyToUse = Math.min(demand, mainItem.qty);
+                        // Добавляем в ведро ссылки на основной предмет
+                        for(let k=0; k<mainQtyToUse; k++) bucket.push(mainItem);
+                        demand -= mainQtyToUse;
+                    }
+
+                    // Б. Если не хватило, черпаем ПОМОЩНИКОВ
+                    if (demand > 0) {
+                        const availableAssists = group.items.filter(it => it.type !== 'main' && it.qty > 0);
+                        
+                        for (let assist of availableAssists) {
+                            if (demand <= 0) break;
+                            let assistQtyToUse = Math.min(demand, assist.qty);
+                            for(let k=0; k<assistQtyToUse; k++) bucket.push(assist);
+                            demand -= assistQtyToUse;
+                        }
+                    }
+
+                    // В. Если всё равно не хватило (дефицит), добиваем ОСНОВНЫМ (визуально, счетчик уйдет в минус или останется 0)
+                    while (demand > 0) {
+                        bucket.push(mainItem || group.items[0]);
+                        demand--;
+                    }
+
+                    // Г. ПЕРЕМЕШИВАЕМ ВЕДРО (Fisher-Yates Shuffle)
+                    // Именно это убирает полосу и распределяет помощников рандомно
+                    for (let i = bucket.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [bucket[i], bucket[j]] = [bucket[j], bucket[i]];
+                    }
+
+                    // Д. Раскладываем кубики из ведра по координатам
+                    coords.forEach((coord, i) => {
+                        let selectedItem = bucket[i];
+
+                        // Списываем количество (фактический расход)
+                        if (selectedItem.qty > 0) selectedItem.qty--;
+
+                        // Определяем финальный индекс для отрисовки
+                        let finalIdx = 0;
+                        if (selectedItem.type === 'main' || selectedItem.type === 'palette_assist') {
+                            finalIdx = selectedItem.displayIdx;
+                        } else {
+                            // Внешний помощник
+                            const key = group.mainIdx + '_' + selectedItem.assistId;
+                            if (assistMap[key] !== undefined) {
+                                finalIdx = assistMap[key];
+                            } else {
+                                displayPalette.push(selectedItem.hex);
+                                const baseSym = currentSymbolSet[group.mainIdx];
+                                const subIndex = Object.keys(assistMap).filter(k => k.startsWith(group.mainIdx+'_')).length + 1;
+                                displaySymbols.push(baseSym + subIndex); 
+                                finalIdx = displayPalette.length - 1;
+                                assistMap[key] = finalIdx;
+                            }
+                        }
+                        
+                        finalMatrixResult[coord.y][coord.x] = finalIdx;
+                    });
+                }
+
+                generatedMatrix = finalMatrixResult;
+                finalizeMatrixWithBorder();
+            } else {
+                alert("Не хватает блоков! Добавьте количество или помощников.");
+            }
+        } // КОНЕЦ ФУНКЦИИ PROCESS STOCK IMAGE
+
+        // --- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (ТЕПЕРЬ ОНИ СНАРУЖИ И ВИДНЫ ВСЕМ) ---
+
+        function getLum(hex) {
+            const r = parseInt(hex.slice(1, 3), 16);
+            const g = parseInt(hex.slice(3, 5), 16);
+            const b = parseInt(hex.slice(5, 7), 16);
+            return 0.299 * r + 0.587 * g + 0.114 * b;
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        // Глобальные функции для модального окна помощников
+        function triggerHelperPicker(mainIdx, assistId = null) {
+            activeHelperIdx = mainIdx;
+            window.editingAssistId = assistId; 
+            const modal = document.getElementById('helperSelectModal');
+            const grid = document.getElementById('helperPaletteGrid');
+            grid.innerHTML = '';
+            currentPalette.forEach((col, i) => {
+                const btn = document.createElement('div');
+                btn.style.width = '30px'; btn.style.height = '30px';
+                btn.style.borderRadius = '50%'; btn.style.background = col;
+                btn.style.cursor = 'pointer'; btn.style.border = '2px solid var(--glass-border)';
+                btn.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
+                btn.style.display = 'flex'; btn.style.alignItems = 'center'; btn.style.justifyContent = 'center';
+                btn.style.fontSize = '10px';
+                btn.style.color = getContrastColor(col);
+                btn.innerText = currentSymbolSet[i] || "";
+                btn.onclick = () => onHelperColorPicked(col);
+                grid.appendChild(btn);
+            });
+            modal.style.display = 'flex';
+        }
+
+        function closeHelperModal(e) {
+            if(e.target.id === 'helperSelectModal') e.target.style.display = 'none';
+        }
+
+        function onHelperColorPicked(hex) {
+            document.getElementById('helperSelectModal').style.display = 'none';
+            if (activeHelperIdx !== -1 && hex) {
+                if (window.editingAssistId) {
+                    const arr = stockAssists[activeHelperIdx];
+                    const assist = arr.find(a => a.id === window.editingAssistId);
+                    if (assist) assist.hex = hex;
+                    window.editingAssistId = null;
+                } else {
+                    if (!stockAssists[activeHelperIdx]) stockAssists[activeHelperIdx] = [];
+                    stockAssists[activeHelperIdx].push({ hex: hex, qty: 0, id: Date.now() });
+                }
+                renderStockInputs(); 
+                processStockImage(); 
+            }
+            activeHelperIdx = -1;
+        }
+
+        function removeAssistant(mainIdx, assistId) {
+            if (stockAssists[mainIdx]) {
+                stockAssists[mainIdx] = stockAssists[mainIdx].filter(a => a.id !== assistId);
+                renderStockInputs();
+                processStockImage();
+            }
+        }
+// --- СКРЫТОЕ ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ ОТОБРАЖЕНИЯ ---
+// 0 = Auto, 1 = Force Mobile, 2 = Force PC
+let layoutModeState = 0; 
+// Сохраняем оригинальный запрос, чтобы можно было к нему вернуться
+const ORIGINAL_MEDIA_QUERY = "(max-width: 768px) and (orientation: portrait)";
+
+function cycleLayoutMode() {
+    const sheets = document.styleSheets;
+    let targetRule = null;
+
+    // 1. Ищем наше правило @media во всех стилях
+    for (let i = 0; i < sheets.length; i++) {
+        try {
+            const rules = sheets[i].cssRules;
+            if (!rules) continue;
+            for (let j = 0; j < rules.length; j++) {
+                // Проверяем, это ли наше правило (по ключевым словам или текущему состоянию)
+                const txt = rules[j].conditionText;
+                if (txt && (txt.includes("max-width: 768px") || txt === "all" || txt === "max-width: 0px")) {
+                    targetRule = rules[j];
+                    break;
+                }
+            }
+        } catch (e) {
+            // Игнорируем ошибки доступа к внешним стилям (если есть)
+        }
+        if (targetRule) break;
+    }
+
+    if (!targetRule) {
+        alert("Ошибка: Не найдены мобильные стили!");
+        return;
+    }
+
+    // 2. Переключаем состояние
+    layoutModeState = (layoutModeState + 1) % 3;
+    const label = document.getElementById('versionLabel');
+
+    if (layoutModeState === 0) {
+        // АВТО (Возвращаем как было)
+        targetRule.conditionText = ORIGINAL_MEDIA_QUERY;
+        label.innerText = "PhotoBrick v2.1.9";
+        label.style.color = "var(--text-sec)";
+    } 
+    else if (layoutModeState === 1) {
+        // ПРИНУДИТЕЛЬНО МОБИЛЬНЫЙ (условие "all" срабатывает всегда)
+        targetRule.conditionText = "all";
+        label.innerText = "PhotoBrick v2.1.9 (Mobile)";
+        label.style.color = "var(--primary)"; // Подсветим желтым/синим
+    } 
+    else if (layoutModeState === 2) {
+        // ПРИНУДИТЕЛЬНО ПК (условие "max-width: 0px" никогда не сработает)
+        targetRule.conditionText = "max-width: 0px";
+        label.innerText = "PhotoBrick v2.1.9 (PC)";
+        label.style.color = "var(--primary)";
+    }
+}
+
     </script>
 </body>
 </html>
