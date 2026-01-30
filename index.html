@@ -931,9 +931,14 @@
         window.onload = () => { 
             document.getElementById('palettePreset').value = 'bw';
             currentPalette = [...PRESETS['bw']]; 
-            aiBasePalette = [...PRESETS['bw']];
-
-            renderPaletteUI(); setupEvents(); setupTouchGestures(); setupGridGestures(); setupMouseGestures(); setupDragDrop(); 
+            aiBasePalette = []; // ИСПРАВЛЕНО: Должен быть пустой массив, чтобы работал алгоритм яркости
+            
+            renderPaletteUI(); 
+            setupEvents(); 
+            setupTouchGestures(); 
+            setupGridGestures(); 
+            setupMouseGestures(); 
+            setupDragDrop(); 
             document.getElementById('colorCountGroup').style.display = 'none'; 
             document.getElementById('refreshPaletteBtn').style.display = 'flex';
         };
@@ -1181,43 +1186,25 @@ if(d.hiddenRegions) {
         }
 
         function applyPaletteLogic(val) {
-            // Сбрасываем флаг режима склада
             isStockMode = false;
             
-            // --- РЕЖИМ: СВОЙ AI (v4.0 Default Palette) ---
+            // --- РЕЖИМ: СВОЙ AI ---
             if (val === 'custom_ai') {
-    isStockMode = true;
-    finalMatrix = [];
-    generatedMatrix = [];
-    const cvs = document.getElementById('mainCanvas');
-    const ctx = cvs.getContext('2d');
-    ctx.clearRect(0, 0, cvs.width, cvs.height); 
+                isStockMode = true;
+                const targetCount = 12;
+                document.getElementById('colorCount').value = targetCount;
+                document.getElementById('colorCountVal').innerText = targetCount;
+                // Идеальный градиент
+                const idealPalette = ["#000000", "#1A1A1A", "#333333", "#4D4D4D", "#666666", "#808080", "#999999", "#B3B3B3", "#CCCCCC", "#E6E6E6", "#F2F2F2", "#FFFFFF"];
+                currentPalette = [...idealPalette];
+                aiBasePalette = [...idealPalette];
+                while(stockQuantities.length < targetCount) stockQuantities.push(0);
+                renderPaletteUI();
+                renderStockInputs(); 
+                return; 
+            }
 
-    // УСТАНОВКА ПАЛИТРЫ (12 ЦВЕТОВ)
-    const targetCount = 12; // Изменили с 8 на 12
-    document.getElementById('colorCount').value = targetCount;
-    document.getElementById('colorCountVal').innerText = targetCount;
-
-    // Математически идеальный градиент из 12 оттенков (от черного к белому)
-    const idealPalette = [
-        "#000000", "#1A1A1A", "#333333", "#4D4D4D", 
-        "#666666", "#808080", "#999999", "#B3B3B3", 
-        "#CCCCCC", "#E6E6E6", "#F2F2F2", "#FFFFFF"
-    ];
-
-    currentPalette = [...idealPalette];
-    aiBasePalette = [...idealPalette];
-
-    // Синхронизация массива количеств
-    while(stockQuantities.length < targetCount) stockQuantities.push(0);
-    if (stockQuantities.length > targetCount) stockQuantities = stockQuantities.slice(0, targetCount);
-
-    renderPaletteUI();
-    renderStockInputs(); 
-    return; 
-}
-            // ---------------------------------------------
-
+            // --- ОБЫЧНЫЕ РЕЖИМЫ ---
             if (val === 'bw' || val === 'popart') {
                  document.getElementById('colorCount').value = 5;
                  document.getElementById('colorCountVal').innerText = 5;
@@ -1230,7 +1217,8 @@ if(d.hiddenRegions) {
                 return; 
             }
             
-            if (val === 'random_chaos' || val === 'smart_neon' || val === 'popart' || val === 'bw') {
+            // ВАЖНОЕ ИЗМЕНЕНИЕ: Убрали 'bw' и 'popart' из этого списка, чтобы они не считали AI палитру
+            if (val === 'random_chaos' || val === 'smart_neon') {
                 if (aiBasePalette.length === 0) {
                     if(val === 'random_chaos') { generateChaosPalette(); } 
                     else if(val === 'smart_neon') { 
@@ -1239,18 +1227,27 @@ if(d.hiddenRegions) {
                         aiBasePalette = [...currentPalette]; 
                         generateSmartPalette(true); 
                     }
-                    else { 
-                        extractPaletteQuantized(); 
-                        aiBasePalette = [...currentPalette];
-                        if(val === 'bw') { currentPalette = [...PRESETS['bw']]; } 
-                        else if(val === 'popart') { currentPalette = [...LEGO_PALETTE]; }
-                    }
                 }
                 renderPaletteUI(); processImage(); return;
             }
             
-            if (PRESETS[val]) { currentPalette = [...PRESETS[val]]; aiBasePalette=[]; } 
-            else if (val === 'original') { extractPaletteQuantized(); aiBasePalette=[]; } 
+            // ЕСЛИ ЭТО BW или POPART — МЫ ПРИНУДИТЕЛЬНО ОЧИЩАЕМ AI БАЗУ
+            if (val === 'bw') {
+                currentPalette = [...PRESETS['bw']]; 
+                aiBasePalette = []; // Очистка базы гарантирует чистый результат
+            } 
+            else if (val === 'popart') {
+                currentPalette = [...LEGO_PALETTE];
+                aiBasePalette = []; // Очистка базы
+            }
+            else if (PRESETS[val]) { 
+                currentPalette = [...PRESETS[val]]; 
+                aiBasePalette = []; 
+            } 
+            else if (val === 'original') { 
+                extractPaletteQuantized(); 
+                aiBasePalette = []; // Для оригинала база тоже не нужна, он сам по себе
+            } 
             
             renderPaletteUI(); 
             if(sourceImage) processImage(); 
@@ -1496,22 +1493,8 @@ const data = { palette: currentPalette, stockAssists: stockAssists, aiBase: aiBa
 
         function resetStylesOnly() { 
             pushHistory(); 
-            document.getElementById('palettePreset').value = 'bw'; 
-            document.getElementById('refreshPaletteBtn').style.display = 'flex'; 
             
-            aiBasePalette = []; 
-            currentPalette = []; 
-            
-            if(sourceImage) { 
-                extractPaletteQuantized(); 
-                aiBasePalette = [...PRESETS['bw']]; 
-                currentPalette = [...PRESETS['bw']]; 
-            } else { 
-                currentPalette = [...PRESETS['bw']]; 
-                aiBasePalette = [...PRESETS['bw']]; 
-            } 
-            
-            // RESET TO NEUTRAL
+            // 1. Сброс ползунков в нейтральное положение
             document.getElementById('borderWidth').value = 0; 
             document.getElementById('borderWidthVal').innerText = 0; 
             
@@ -1536,14 +1519,26 @@ const data = { palette: currentPalette, stockAssists: stockAssists, aiBase: aiBa
             document.getElementById('panXVal').innerText = "0%";
             document.getElementById('panY').value = 0;
             document.getElementById('panYVal').innerText = "0%";
+            
             document.getElementById('setSize').value = 50; 
             document.getElementById('customSizeGroup').style.display = 'none';
-
             document.getElementById('colorCountGroup').style.display = 'none'; 
             
             isPencil = false; 
             document.getElementById('pencilBtn').classList.remove('active'); 
             document.querySelector('.viewport').classList.remove('pencil-mode'); 
+
+            // --- МАГИЧЕСКИЙ ПИНОК (ХАК) ---
+            // 2. Принудительно включаем режим LEGO (popart), чтобы сбить настройки AI
+            applyPaletteLogic('popart'); 
+
+            // 3. Сразу же возвращаем режим ЧБ (bw)
+            document.getElementById('palettePreset').value = 'bw'; 
+            applyPaletteLogic('bw'); 
+            // -----------------------------
+
+            document.getElementById('refreshPaletteBtn').style.display = 'flex';
+            
             renderPaletteUI(); 
             if(sourceImage) processImage(); 
         }
@@ -2915,4 +2910,3 @@ function cycleLayoutMode() {
     </script>
 </body>
 </html>
-
