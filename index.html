@@ -7,6 +7,34 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <style>
+    /* Кнопка сброса вида (ЦЕНТР) */
+        .center-view-btn {
+            position: absolute;
+            bottom: 6px;       /* Отступ снизу */
+            left: 50%;
+            transform: translateX(-50%); /* Центровка */
+            
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #fff;
+            
+            font-size: 8px;
+            font-weight: bold;
+            text-transform: uppercase;
+            padding: 3px 8px;
+            border-radius: 10px;
+            
+            cursor: pointer;
+            z-index: 20;
+            pointer-events: auto !important; /* ВАЖНО: разрешаем клик */
+            transition: 0.2s;
+        }
+
+        .center-view-btn:active {
+            background: var(--primary);
+            color: var(--on-primary);
+            transform: translateX(-50%) scale(0.9);
+        }
         :root {
             --bg-gradient: radial-gradient(circle at top left, #1e1e24, #121212);
             --glass-bg: rgba(30, 30, 30, 0.95);
@@ -263,7 +291,7 @@
         body.fullscreen-mode #fsGridControls { display: flex; }
         
         @media (min-width: 1024px) {
-            #gestureLockBtn { display: none !important; }
+            /* --- #gestureLockBtn { display: none !important; } --- */
             .sidebar { padding: 30px; gap: 20px; }
             .header-bar { padding: 20px 30px; } 
             .mode-toggle { height: 40px; padding: 4px; border-radius: 40px; }
@@ -854,13 +882,12 @@
                     </div>
                     
                     <div class="preview-box" id="origBox" style="display:none">
-                         <div class="image-wrapper">
-                             <div class="preview-label">ОРИГИНАЛ</div>
-                             <img id="originalImageThumb" class="preview-content">
+                        <div class="image-wrapper">
+                            <div class="preview-label">ОРИГИНАЛ</div>
+                            <img id="originalImageThumb" class="preview-content">
+                            <button class="center-view-btn" onclick="resetVisualView()">ЦЕНТР</button>
                         </div>
                     </div>
-                </div>
-            </div>
             
             <div id="sectorNav" class="floating-nav">
                 <div class="nav-grid">
@@ -1006,7 +1033,18 @@
             const gridZoom = document.getElementById('gridZoom'); gridZoom.oninput = (e) => { updateGridScale(e.target.value); };
             document.addEventListener('click', (e) => { if(!document.body.classList.contains('fullscreen-mode')) return; if(window.innerWidth >= 1024) return; if(e.target.closest('#fsGridControls')) return; if(e.target.closest('#fsExitBtn')) return; });
         }
-
+function resetVisualView() {
+            // 1. Обнуляем координаты сдвига
+            visualPanX = 0;
+            visualPanY = 0;
+            
+            // 2. Сбрасываем ползунки зума на 100%
+            if(document.getElementById('gridZoom')) document.getElementById('gridZoom').value = 100;
+            if(document.getElementById('fsGridZoom')) document.getElementById('fsGridZoom').value = 100;
+            
+            // 3. Применяем изменения (масштаб 100% и центр)
+            updateGridScale(100);
+        }
         function updateGridScale(val) {
             const scale = val / 100;
             const intVal = Math.round(val);
@@ -1036,12 +1074,7 @@
         }
 
         // --- Управление попапами зума (должно быть отдельно) ---
-        function toggleZoomPopup() { 
-            const p = document.getElementById('zoomPopup'); 
-            const btn = document.getElementById('zoomDisplayBtn'); 
-            p.classList.toggle('show'); 
-            btn.classList.toggle('btn-active-state'); 
-        }
+       
         function toggleZoomPopup() { const p = document.getElementById('zoomPopup'); const btn = document.getElementById('zoomDisplayBtn'); p.classList.toggle('show'); btn.classList.toggle('btn-active-state'); }
         document.addEventListener('click', (e) => { const p = document.getElementById('zoomPopup'); const btn = document.getElementById('zoomDisplayBtn'); if(p.classList.contains('show') && !p.contains(e.target) && !btn.contains(e.target)) { p.classList.remove('show'); btn.classList.remove('btn-active-state'); } });
         function toggleZoomPopupFS() { const z = document.getElementById('fsZoomPopup'); if(z.classList.contains('show')) { z.classList.remove('show'); document.getElementById('fsZoomBtn').classList.remove('btn-active-state'); } else { z.classList.add('show'); document.getElementById('fsZoomBtn').classList.add('btn-active-state'); } }
