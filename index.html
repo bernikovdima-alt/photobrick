@@ -152,8 +152,48 @@
         
         .ruler-cell { background: #eee; color: #333; transition: background 0.2s; }
         .ruler-cell:hover { background: #ddd; }
-        .info-header { background: #eee; color: #333; border-top: 1px solid #ccc; border-left: 1px solid #ccc; font-weight: bold; font-size: 10px; display: flex; justify-content: center; align-items: center; width: 280px; height: 25px; cursor:pointer; }
-        .row-info { display: flex; align-items: center; padding-left: 10px; border-top: 1px solid #ccc; height: 20px; width: 280px; font-size: 10px; background: #f4f4f4; color: #111; font-family: monospace; cursor:pointer; transition: background 0.2s; }
+.info-header { 
+            background: #eee; 
+            color: #333; 
+            border-top: 1px solid #ccc; 
+            border-left: 1px solid #ccc; 
+            font-weight: bold; 
+            font-size: 10px; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            width: 350px; /* Убрали теперь ширина авто */
+            height: 25px; 
+            cursor: pointer; 
+            padding: 0 10px;
+            white-space: nowrap;
+        }
+.row-info { 
+            display: flex; 
+            align-items: center; 
+            padding-left: 5px; /* Уменьшили отступ */
+            border-top: 1px solid #ccc; 
+            height: 20px; 
+            width: 350px /* Убрали */
+            font-size: 10px; 
+            background: #f4f4f4; 
+            color: #111; 
+            font-family: monospace; 
+            cursor: pointer; 
+            transition: background 0.2s; 
+            
+            /* --- ВАЖНЫЕ ДОБАВЛЕНИЯ --- */
+            overflow-x: auto; /* Горизонтальная прокрутка, если не влезло */
+            overflow-y: hidden;
+            white-space: nowrap; /* Запрет переноса строк (чтобы высота не скакала) */
+            scrollbar-width: none; /* Скрываем скроллбар (Firefox) */
+            -ms-overflow-style: none;  /* Скрываем скроллбар (IE) */
+        }
+        
+        /* Скрываем скроллбар для Chrome/Safari */
+        .row-info::-webkit-scrollbar { 
+            display: none; 
+        }
         .row-info:hover { background: #e0e0e0; }
         
         .shade-layer { position: absolute; background: rgba(0,0,0,0.7); pointer-events: none; z-index: 50; left: 0; right: 0; }
@@ -968,7 +1008,29 @@
 
         function setupEvents() {
             document.getElementById('upload').onchange = handleUpload; document.getElementById('loadProject').onchange = loadProject;
-            document.getElementById('symbolSet').onchange = (e) => { currentSymbolSet = SYMBOL_SETS[e.target.value]; updateStats(); renderPaletteUI(); if(document.getElementById('instructionView').style.display === 'block') drawGrid(); };
+document.getElementById('symbolSet').onchange = (e) => { 
+                // 1. Запоминаем новый выбор (Буквы, Цифры и т.д.)
+                currentSymbolSet = SYMBOL_SETS[e.target.value]; 
+
+                // 2. СРАЗУ обновляем массив символов для текущего отображения
+                // (Без этого шага сетка рисовала старые символы)
+                displaySymbols = [...currentSymbolSet];
+
+                if (isStockMode) {
+                    // Если включен режим Склада (Свой AI), нужно перезапустить расчет,
+                    // чтобы обновились сложные индексы (типа A1, A2 или 1-1, 1-2)
+                    processStockImage();
+                } else {
+                    // В обычном режиме просто обновляем статистику и палитру
+                    updateStats(); 
+                    renderPaletteUI(); 
+                    
+                    // 3. Если мы прямо сейчас смотрим на схему - ПЕРЕРИСОВЫВАЕМ ЕЁ
+                    if(document.getElementById('instructionView').style.display === 'block') {
+                        drawGrid();
+                    }
+                }
+            };
             ['zoom', 'contrast', 'brightness', 'panX', 'panY', 'smartBlur', 'sharpness', 'posterize'].forEach(id => { document.getElementById(id).oninput = (e) => { let suffix = '%'; if(id === 'smartBlur' || id === 'posterize') suffix = ''; document.getElementById(id+'Val').innerText = e.target.value + suffix; if(sourceImage) processImage(); }; });
             document.getElementById('palettePreset').onchange = (e) => { 
                 pushHistory(); 
@@ -2093,9 +2155,13 @@ const data = { palette: currentPalette, stockAssists: stockAssists, aiBase: aiBa
             const visW = eX - sX; 
             const grid = document.createElement('div'); 
             grid.className = 'instruction-grid'; 
-            // Подстраиваем ширину: если печать - чуть шире ячейки
+            
             const cellW = isPrint ? 25 : 20;
-            grid.style.gridTemplateColumns = `25px repeat(${visW}, ${cellW}px) 280px`;
+            
+            // --- ИСПРАВЛЕНИЕ 1: Меняем 280px на auto, чтобы колонка расширялась ---
+            // Было: ... 280px`;
+            // Стало: ... auto`;
+            grid.style.gridTemplateColumns = `25px repeat(${visW}, ${cellW}px) auto`;
 
             // Верхняя линейка
             grid.appendChild(createCell('ruler-cell', '')); 
@@ -2123,7 +2189,6 @@ const data = { palette: currentPalette, stockAssists: stockAssists, aiBase: aiBa
                 for(let x=sX; x<eX; x++) { 
                     const idx = finalMatrix[y][x]; 
                     
-                    // Считаем статистику
                     if (!rowStats[idx]) rowStats[idx] = 0;
                     rowStats[idx]++;
 
@@ -2133,7 +2198,6 @@ const data = { palette: currentPalette, stockAssists: stockAssists, aiBase: aiBa
                     const cell = createCell('cell', sym); 
                     cell.style.backgroundColor = palCol; 
                     
-                    // Цвет текста (контраст)
                     const hex = palCol.replace('#','');
                     const r = parseInt(hex.substr(0,2),16), g = parseInt(hex.substr(2,2),16), b = parseInt(hex.substr(4,2),16); 
                     cell.style.color = (r*0.299 + g*0.587 + b*0.114) > 186 ? '#000' : '#fff'; 
@@ -2141,7 +2205,6 @@ const data = { palette: currentPalette, stockAssists: stockAssists, aiBase: aiBa
                     if(!isPrint && isPencil) { 
                         cell.onclick = () => { 
                             pushHistory(); 
-                            // В режиме карандаша перебираем только основные цвета
                             finalMatrix[y][x] = (finalMatrix[y][x] + 1) % currentPalette.length; 
                             drawPreview(finalMatrix[0].length, finalMatrix.length); 
                             updateStats(); 
@@ -2156,7 +2219,6 @@ const data = { palette: currentPalette, stockAssists: stockAssists, aiBase: aiBa
                 info.className = 'row-info'; 
                 info.setAttribute('data-y', y); 
                 
-                // Сортируем индексы, чтобы порядок был красивым
                 const presentIndices = Object.keys(rowStats).map(Number).sort((a,b) => a-b);
                 
                 presentIndices.forEach(idx => {
@@ -2164,12 +2226,12 @@ const data = { palette: currentPalette, stockAssists: stockAssists, aiBase: aiBa
                     const pCol = displayPalette[idx] || '#000';
                     const pSym = displaySymbols[idx] || '?';
                     
-                    // Контраст для текста в инфо
                     const pHex = pCol.replace('#','');
                     const pR = parseInt(pHex.substr(0,2),16), pG = parseInt(pHex.substr(2,2),16), pB = parseInt(pHex.substr(4,2),16); 
                     const textCol = (pR*0.299 + pG*0.587 + pB*0.114) > 186 ? '#000' : '#fff';
 
-                    info.innerHTML += `<span style="padding:1px 4px; border-radius:3px; margin-right:4px; display:inline-block; margin-bottom:2px; background:${pCol}; color:${textCol}; border:1px solid rgba(0,0,0,0.2);">${pSym}:${count}</span>`;
+                    // --- ИСПРАВЛЕНИЕ 2: Сделали отступы компактнее (margin-right:2px) ---
+                    info.innerHTML += `<span style="padding:0 3px; border-radius:3px; margin-right:2px; display:inline-block; font-size:9px; height:14px; line-height:14px; background:${pCol}; color:${textCol}; border:1px solid rgba(0,0,0,0.2);">${pSym}:${count}</span>`;
                 });
 
                 if(!isPrint) info.onclick = function() { toggleRowVisibility(y); }; 
