@@ -1337,73 +1337,106 @@ if(d.hiddenRegions) {
             // Сбрасываем флаг режима склада
             isStockMode = false;
             
-            // --- РЕЖИМ: СВОЙ AI (v4.0 Default Palette) ---
+            // --- 1. РЕЖИМ: СВОЙ AI (v4.0 Default Palette) ---
             if (val === 'custom_ai') {
-    isStockMode = true;
-    finalMatrix = [];
-    generatedMatrix = [];
-    const cvs = document.getElementById('mainCanvas');
-    const ctx = cvs.getContext('2d');
-    ctx.clearRect(0, 0, cvs.width, cvs.height); 
+                isStockMode = true;
+                finalMatrix = [];
+                generatedMatrix = [];
+                const cvs = document.getElementById('mainCanvas');
+                const ctx = cvs.getContext('2d');
+                ctx.clearRect(0, 0, cvs.width, cvs.height); 
 
-    // УСТАНОВКА ПАЛИТРЫ (12 ЦВЕТОВ)
-    const targetCount = 12; // Изменили с 8 на 12
-    document.getElementById('colorCount').value = targetCount;
-    document.getElementById('colorCountVal').innerText = targetCount;
+                // Здесь уже было 12, оставляем как есть
+                const targetCount = 12; 
+                document.getElementById('colorCount').value = targetCount;
+                document.getElementById('colorCountVal').innerText = targetCount;
 
-    // Математически идеальный градиент из 12 оттенков (от черного к белому)
-    const idealPalette = [
-        "#000000", "#1A1A1A", "#333333", "#4D4D4D", 
-        "#666666", "#808080", "#999999", "#B3B3B3", 
-        "#CCCCCC", "#E6E6E6", "#F2F2F2", "#FFFFFF"
-    ];
+                const idealPalette = [
+                    "#000000", "#1A1A1A", "#333333", "#4D4D4D", 
+                    "#666666", "#808080", "#999999", "#B3B3B3", 
+                    "#CCCCCC", "#E6E6E6", "#F2F2F2", "#FFFFFF"
+                ];
 
-    currentPalette = [...idealPalette];
-    aiBasePalette = [...idealPalette];
+                currentPalette = [...idealPalette];
+                aiBasePalette = [...idealPalette];
 
-    // Синхронизация массива количеств
-    while(stockQuantities.length < targetCount) stockQuantities.push(0);
-    if (stockQuantities.length > targetCount) stockQuantities = stockQuantities.slice(0, targetCount);
+                while(stockQuantities.length < targetCount) stockQuantities.push(0);
+                if (stockQuantities.length > targetCount) stockQuantities = stockQuantities.slice(0, targetCount);
 
-    renderPaletteUI();
-    renderStockInputs(); 
-    return; 
-}
-            // ---------------------------------------------
+                renderPaletteUI();
+                renderStockInputs(); 
+                return; 
+            }
 
-            if (val === 'bw' || val === 'popart') {
+            // --- 2. ЖЕСТКИЕ ПРЕСЕТЫ (ЧБ и ЛЕГО) ---
+            // Сбрасываем на 5 цветов
+            if (val === 'bw') {
                  document.getElementById('colorCount').value = 5;
                  document.getElementById('colorCountVal').innerText = 5;
+                 currentPalette = [...PRESETS['bw']];
+                 aiBasePalette = []; 
+                 renderPaletteUI(); 
+                 if(sourceImage) processImage();
+                 return;
             }
+
+            if (val === 'popart') {
+                 document.getElementById('colorCount').value = 5;
+                 document.getElementById('colorCountVal').innerText = 5;
+                 currentPalette = [...LEGO_PALETTE];
+                 aiBasePalette = []; 
+                 renderPaletteUI(); 
+                 if(sourceImage) processImage();
+                 return;
+            }
+
+            // --- 3. ГЕНЕРАТИВНЫЕ ПРЕСЕТЫ (ХАОС - теперь 12) ---
+            
+            if (val === 'random_chaos') {
+                // !!! УСТАНАВЛИВАЕМ 12 ЦВЕТОВ ПО УМОЛЧАНИЮ !!!
+                document.getElementById('colorCount').value = 12;
+                document.getElementById('colorCountVal').innerText = 12;
+
+                generateChaosPalette(); // Функция сама возьмет значение 12 из элемента colorCount
+                aiBasePalette = []; 
+                renderPaletteUI(); 
+                processImage(); 
+                return;
+            }
+
+            if (val === 'smart_neon') { 
+                if (aiBasePalette.length === 0) {
+                     extractPaletteQuantized(); 
+                     aiBasePalette = [...currentPalette]; 
+                }
+                updateCustomColorCount(parseInt(document.getElementById('colorCount').value));
+                generateSmartPalette(true); 
+                renderPaletteUI(); 
+                processImage(); 
+                return;
+            } 
 
             if (val === 'custom') { 
                 document.getElementById('colorCount').value = currentPalette.length; 
                 document.getElementById('colorCountVal').innerText = currentPalette.length; 
+                aiBasePalette = []; 
                 renderPaletteUI(); 
                 return; 
             }
             
-            if (val === 'random_chaos' || val === 'smart_neon' || val === 'popart' || val === 'bw') {
-                if (aiBasePalette.length === 0) {
-                    if(val === 'random_chaos') { generateChaosPalette(); } 
-                    else if(val === 'smart_neon') { 
-                        updateCustomColorCount(parseInt(document.getElementById('colorCount').value));
-                        extractPaletteQuantized(); 
-                        aiBasePalette = [...currentPalette]; 
-                        generateSmartPalette(true); 
-                    }
-                    else { 
-                        extractPaletteQuantized(); 
-                        aiBasePalette = [...currentPalette];
-                        if(val === 'bw') { currentPalette = [...PRESETS['bw']]; } 
-                        else if(val === 'popart') { currentPalette = [...LEGO_PALETTE]; }
-                    }
-                }
-                renderPaletteUI(); processImage(); return;
-            }
-            
-            if (PRESETS[val]) { currentPalette = [...PRESETS[val]]; aiBasePalette=[]; } 
-            else if (val === 'original') { extractPaletteQuantized(); aiBasePalette=[]; } 
+            // --- 4. ОРИГИНАЛ (SMART AI - теперь 12) ---
+            if (val === 'original') { 
+                // !!! УСТАНАВЛИВАЕМ 12 ЦВЕТОВ ПО УМОЛЧАНИЮ !!!
+                document.getElementById('colorCount').value = 12;
+                document.getElementById('colorCountVal').innerText = 12;
+
+                extractPaletteQuantized(); // Функция сама возьмет значение 12 из элемента colorCount
+                aiBasePalette=[]; 
+            } 
+            else if (PRESETS[val]) { 
+                currentPalette = [...PRESETS[val]]; 
+                aiBasePalette=[]; 
+            } 
             
             renderPaletteUI(); 
             if(sourceImage) processImage(); 
@@ -1641,7 +1674,77 @@ if(d.hiddenRegions) {
                 }); 
             }); 
         }
-        function renderPaletteUI() { const c = document.getElementById('paletteContainer'); c.innerHTML = ''; currentPalette.forEach((col, i) => { const d = document.createElement('div'); const isActive = (selectedBrushIndex === i) && isPencil; const preset = document.getElementById('palettePreset').value; const isRestricted = ['bw', 'popart'].includes(preset); const isEditable = !isRestricted; d.className = 'palette-item' + (isActive ? ' active-brush' : '') + (isEditable ? ' editable' : ' disabled'); d.style.background = col; d.innerHTML = `<span class="pal-sym" style="color:${getContrastColor(col)}">${currentSymbolSet[i] || "?"}</span>`; d.onclick = (e) => { if(e.target.tagName === 'INPUT') return; if (isPencil) { selectedBrushIndex = i; renderPaletteUI(); } else { if(isEditable) { const inp = d.querySelector('input'); if(inp) inp.click(); } } }; if(isEditable) { const inp = document.createElement('input'); inp.type = 'color'; inp.value = col; inp.onclick = (e) => { if(isPencil) { e.preventDefault(); e.stopPropagation(); selectedBrushIndex = i; renderPaletteUI(); return false; } e.stopPropagation(); }; inp.oninput = (e) => { e.stopPropagation(); currentPalette[i] = e.target.value; d.style.background = e.target.value; drawPreview(finalMatrix[0].length, finalMatrix.length); if(document.getElementById('instructionView').style.display === 'block') drawGrid(); updateStats(); }; inp.onchange = (e) => pushHistory(); d.appendChild(inp); } c.appendChild(d); }); }
+        function renderPaletteUI() { 
+            const c = document.getElementById('paletteContainer'); 
+            c.innerHTML = ''; 
+            currentPalette.forEach((col, i) => { 
+                const d = document.createElement('div'); 
+                const isActive = (selectedBrushIndex === i) && isPencil; 
+                const preset = document.getElementById('palettePreset').value; 
+                const isRestricted = ['bw', 'popart'].includes(preset); 
+                const isEditable = !isRestricted; 
+                
+                d.className = 'palette-item' + (isActive ? ' active-brush' : '') + (isEditable ? ' editable' : ' disabled'); 
+                d.style.background = col; 
+                d.innerHTML = `<span class="pal-sym" style="color:${getContrastColor(col)}">${currentSymbolSet[i] || "?"}</span>`; 
+                
+                d.onclick = (e) => { 
+                    if(e.target.tagName === 'INPUT') return; 
+                    if (isPencil) { 
+                        selectedBrushIndex = i; 
+                        renderPaletteUI(); 
+                    } else { 
+                        if(isEditable) { 
+                            const inp = d.querySelector('input'); 
+                            if(inp) inp.click(); 
+                        } 
+                    } 
+                }; 
+
+                if(isEditable) { 
+                    const inp = document.createElement('input'); 
+                    inp.type = 'color'; 
+                    inp.value = col; 
+                    inp.onclick = (e) => { 
+                        if(isPencil) { 
+                            e.preventDefault(); 
+                            e.stopPropagation(); 
+                            selectedBrushIndex = i; 
+                            renderPaletteUI(); 
+                            return false; 
+                        } 
+                        e.stopPropagation(); 
+                    }; 
+                    
+                    // --- ИСПРАВЛЕНИЕ ЗДЕСЬ ---
+                    inp.oninput = (e) => { 
+                        e.stopPropagation(); 
+                        const newVal = e.target.value;
+                        
+                        // 1. Обновляем основной массив
+                        currentPalette[i] = newVal; 
+                        
+                        // 2. Визуально меняем кружок в палитре
+                        d.style.background = newVal; 
+                        
+                        // 3. !ГЛАВНОЕ! Обновляем палитру отображения, чтобы мозаика перекрасилась сразу
+                        if (displayPalette && displayPalette.length > i) {
+                            displayPalette[i] = newVal;
+                        }
+
+                        // 4. Перерисовываем
+                        drawPreview(finalMatrix[0].length, finalMatrix.length); 
+                        if(document.getElementById('instructionView').style.display === 'block') drawGrid(); 
+                        updateStats(); 
+                    }; 
+                    // --------------------------
+
+                    inp.onchange = (e) => pushHistory(); 
+                    d.appendChild(inp); 
+                } 
+                c.appendChild(d); 
+            }); 
+        }
         function hexToRgb(hex) { const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex); return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : {r:0,g:0,b:0}; }
         function toggleTheme() { const b = document.body; b.setAttribute('data-theme', b.getAttribute('data-theme')==='light'?'dark':'light'); }
         function saveProject() { if(!sourceImage) return; 
@@ -1649,22 +1752,28 @@ const data = { palette: currentPalette, stockAssists: stockAssists, aiBase: aiBa
 
         function resetStylesOnly() { 
             pushHistory(); 
-            document.getElementById('palettePreset').value = 'bw'; 
-            document.getElementById('refreshPaletteBtn').style.display = 'flex'; 
             
-            aiBasePalette = []; 
-            currentPalette = []; 
+            // --- 1. СБРОС ФЛАГОВ РЕЖИМА "СВОЙ AI" (ГЛАВНОЕ ИСПРАВЛЕНИЕ) ---
+            isStockMode = false;           // Выключаем режим склада
+            useMixMode = false;            // Выключаем миксер
+            if (window.stockTimeout) clearTimeout(window.stockTimeout); // Останавливаем расчеты, если шли
             
-            if(sourceImage) { 
-                extractPaletteQuantized(); 
-                aiBasePalette = [...PRESETS['bw']]; 
-                currentPalette = [...PRESETS['bw']]; 
-            } else { 
-                currentPalette = [...PRESETS['bw']]; 
-                aiBasePalette = [...PRESETS['bw']]; 
-            } 
+            // Сбрасываем массивы склада на дефолт
+            stockQuantities = [150, 150, 150, 150, 150, 150, 150, 150, 150, 150, 150, 150]; 
+            stockAssists = {}; 
             
-            // RESET TO NEUTRAL
+            // Очищаем переменные отображения, чтобы не остались старые цвета
+            displayPalette = []; 
+            displaySymbols = [];
+
+            // --- 2. СБРОС РАЗМЕРА ---
+            const sizeSelect = document.getElementById('setSize');
+            sizeSelect.value = '50'; 
+            document.getElementById('customSizeGroup').style.display = 'none';
+            document.getElementById('customWidth').value = 50;
+            document.getElementById('customHeight').value = 50;
+
+            // --- 3. СБРОС ВСЕХ ПОЛЗУНКОВ ---
             document.getElementById('borderWidth').value = 0; 
             document.getElementById('borderWidthVal').innerText = 0; 
             
@@ -1689,14 +1798,39 @@ const data = { palette: currentPalette, stockAssists: stockAssists, aiBase: aiBa
             document.getElementById('panXVal').innerText = "0%";
             document.getElementById('panY').value = 0;
             document.getElementById('panYVal').innerText = "0%";
-            document.getElementById('setSize').value = 50; 
-            document.getElementById('customSizeGroup').style.display = 'none';
 
-            document.getElementById('colorCountGroup').style.display = 'none'; 
+            // --- 4. "ПРОГРЕВ" АЛГОРИТМА (ЧТОБЫ СБРОСИТЬ ЦВЕТА) ---
+            if(sourceImage) { 
+                // Эмулируем запуск "Оригинала", чтобы стереть память о предыдущем стиле
+                document.getElementById('palettePreset').value = 'original';
+                document.getElementById('colorCount').value = 12; 
+                document.getElementById('colorCountVal').innerText = 12;
+                
+                extractPaletteQuantized(); 
+                aiBasePalette = []; 
+                currentPalette = [];
+            } 
             
+            // --- 5. УСТАНОВКА СТАНДАРТНОГО ЧБ ---
+            document.getElementById('palettePreset').value = 'bw'; 
+            document.getElementById('refreshPaletteBtn').style.display = 'flex'; 
+            
+            // Скрываем лишние инструменты (выбор кол-ва цветов и панель склада)
+            document.getElementById('colorCount').value = 5; 
+            document.getElementById('colorCountVal').innerText = 5;
+            document.getElementById('colorCountGroup').style.display = 'none'; 
+            document.getElementById('statsContent').innerHTML = ''; // Очищаем панель склада визуально
+            
+            // Применяем палитру
+            currentPalette = [...PRESETS['bw']]; 
+            aiBasePalette = []; 
+            
+            // --- 6. СБРОС ИНСТРУМЕНТОВ UI ---
             isPencil = false; 
             document.getElementById('pencilBtn').classList.remove('active'); 
             document.querySelector('.viewport').classList.remove('pencil-mode'); 
+            
+            // --- 7. ФИНАЛЬНАЯ ОТРИСОВКА ---
             renderPaletteUI(); 
             if(sourceImage) processImage(); 
         }
