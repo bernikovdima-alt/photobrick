@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PhotoBrick v2.1.8</title>
+    <title>PhotoBrick v2.2.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <style>
@@ -263,7 +263,6 @@
         body.fullscreen-mode #fsGridControls { display: flex; }
         
         @media (min-width: 1024px) {
-            #gestureLockBtn { display: none !important; }
             .sidebar { padding: 30px; gap: 20px; }
             .header-bar { padding: 20px 30px; } 
             .mode-toggle { height: 40px; padding: 4px; border-radius: 40px; }
@@ -541,13 +540,13 @@
             <div class="modal-body">
     <div class="algo-box" style="background: rgba(255, 215, 0, 0.15); border: 2px solid #ffd700; margin-bottom: 25px;">
         <span class="algo-title" style="color: #d4a000; font-size: 18px;">🚀 Быстрый старт:</span>
-        [Image of pixel art mosaic generator interface]
+        
         <ul style="margin-top: 5px; padding-left: 20px;">
             <li>Загрузите фото (или перетащите его в окно).</li>
             <li>Выберите размер схемы (S, M, L, XL или свой). Отмасштабируйте по ширине и высоте.</li>
             <li>Выберите стиль обработки.</li>
             <li>Проверьте в режиме <b>Схемы</b>. 
-В Полноэкранном режиме нажимайте на цифры рядов или строк для отметки и собирайте.</li>
+            <li>В Полноэкранном режиме нажимайте на цифры рядов или строк для отметки и собирайте.</li>
         </ul>
     </div>
 
@@ -816,7 +815,7 @@
             </div>
             
             <div id="versionLabel" onclick="cycleLayoutMode()" style="text-align:center; font-size:10px; color:var(--text-sec); margin-top:20px; opacity:0.6; cursor:pointer; user-select:none;" title="Нажми для смены режима (Auto/Mobile/PC)">
-    PhotoBrick v2.1.8
+    PhotoBrick v2.2.0
 </div>
         </aside>
 
@@ -853,12 +852,15 @@
                         </div>
                     </div>
                     
-                    <div class="preview-box" id="origBox" style="display:none">
-                         <div class="image-wrapper">
-                             <div class="preview-label">ОРИГИНАЛ</div>
-                             <img id="originalImageThumb" class="preview-content">
-                        </div>
-                    </div>
+                    <div class="preview-box" id="origBox" style="display:none; flex-direction: column; align-items: center; gap: 8px;">
+    <div class="image-wrapper">
+        <div class="preview-label">ОРИГИНАЛ</div>
+        <img id="originalImageThumb" class="preview-content">
+    </div>
+    <button class="btn btn-sec" onclick="resetResultView()" style="pointer-events: auto; padding: 4px 10px; font-size: 10px; height: auto; width: 100%; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: #fff;">
+        В ЦЕНТР
+    </button>
+</div>
                 </div>
             </div>
             
@@ -915,7 +917,9 @@
         let finalMatrix = []; 
         let currentSector = 'all';
         let gesturesLocked = false;
-        
+        let viewX = 0, viewY = 0;   // Координаты сдвига окна РЕЗУЛЬТАТ
+        let previewZoom = 100;      // Масштаб окна РЕЗУЛЬТАТ
+        let schemeZoom = 100;       // Масштаб окна СХЕМА
         let historyStack = [];
         let isPencil = false;
         let selectedBrushIndex = 0;
@@ -996,54 +1000,292 @@
             const gridZoom = document.getElementById('gridZoom'); gridZoom.oninput = (e) => { updateGridScale(e.target.value); };
             document.addEventListener('click', (e) => { if(!document.body.classList.contains('fullscreen-mode')) return; if(window.innerWidth >= 1024) return; if(e.target.closest('#fsGridControls')) return; if(e.target.closest('#fsExitBtn')) return; });
         }
+function resetResultView() {
+    // 1. Работаем только с переменными ПРЕВЬЮ
+    const startX = viewX;
+    const startY = viewY;
+    const startZoom = previewZoom; // Берем именно previewZoom
+    
+    const targetX = 0;
+    const targetY = 0;
+    const targetZoom = 100;
+    
+    if (startX === targetX && startY === targetY && startZoom === targetZoom) return;
 
-        function updateGridScale(val) {
-            const scale = val / 100;
-            const intVal = Math.round(val);
-            
-            document.getElementById('gridZoom').value = intVal;
-            document.getElementById('fsGridZoom').value = intVal;
-            document.getElementById('zoomText').innerText = intVal + '%';
+    const duration = 400; 
+    const startTime = performance.now();
+    
+    const wrapper = document.querySelector('#resultBox .image-wrapper');
+    if(wrapper) wrapper.style.transition = 'none';
 
-            // 1. МАСШТАБ ДЛЯ СХЕМЫ
-            const grid = document.querySelector('#gridContainer .instruction-grid');
-            if (grid) {
-                grid.style.transform = `scale(${scale})`;
-                const container = document.getElementById('gridContainer');
-                container.style.width = (grid.offsetWidth * scale) + 'px';
-                container.style.height = (grid.offsetHeight * scale) + 'px';
-            }
+    function animate(currentTime) {
+        const timeElapsed = currentTime - startTime;
+        let progress = timeElapsed / duration;
+        if (progress > 1) progress = 1;
 
-            // 2. МАСШТАБ ДЛЯ РЕЗУЛЬТАТА (Теперь ищем ОБЕРТКУ)
-            // Ищем .image-wrapper внутри #resultBox
-            const resultWrapper = document.querySelector('#resultBox .image-wrapper');
+        const ease = 1 - Math.pow(1 - progress, 3);
 
-            if (resultWrapper) {
-                const isFullscreen = document.body.classList.contains('fullscreen-mode');
-                const isPreviewTab = document.getElementById('tab-preview').classList.contains('active');
+        // Обновляем глобальные координаты
+        viewX = startX + (targetX - startX) * ease;
+        viewY = startY + (targetY - startY) * ease;
+        
+        // Вычисляем текущий зум анимации
+        const currentAnimZoom = startZoom + (targetZoom - startZoom) * ease;
+        
+        // ВАЖНО: Обновляем previewZoom, чтобы updateGridScale его подхватил
+        previewZoom = currentAnimZoom;
 
-                if (isFullscreen && isPreviewTab) {
-                    // Применяем масштаб к обертке вместе с рамкой и текстом
-                    resultWrapper.style.transform = `scale(${scale})`;
-                } else {
-                    resultWrapper.style.transform = 'scale(1)';
-                }
-            }
+        // Вызываем обновление (оно само поймет, что мы в tab-preview)
+        updateGridScale(currentAnimZoom);
+
+        if (progress < 1) {
+            requestAnimationFrame(animate);
+        } else {
+            viewX = 0; 
+            viewY = 0;
+            previewZoom = 100; // Фиксируем 100%
+            updateGridScale(100);
+            if(wrapper) wrapper.style.transition = 'transform 0.1s ease-out';
         }
+    }
+    requestAnimationFrame(animate);
+}
+function updateGridScale(val) {
+    const intVal = Math.round(val);
+    const scale = intVal / 100;
+    
+    // Синхронизируем ползунки и текст
+    document.getElementById('gridZoom').value = intVal;
+    document.getElementById('fsGridZoom').value = intVal;
+    document.getElementById('zoomText').innerText = intVal + '%';
+
+    // Проверяем, какая вкладка сейчас активна
+    const isPreviewActive = document.getElementById('tab-preview').classList.contains('active');
+
+    if (isPreviewActive) {
+        // --- РЕЖИМ ПРЕВЬЮ (ВИД) ---
+        previewZoom = intVal; // Запоминаем масштаб для превью
+        
+        const resultWrapper = document.querySelector('#resultBox .image-wrapper');
+        if (resultWrapper) {
+            // Применяем зум и сдвиг только к окну результата
+            resultWrapper.style.transform = `translate(${viewX}px, ${viewY}px) scale(${scale})`;
+        }
+    } else {
+        // --- РЕЖИМ СХЕМЫ (ИНСТРУКЦИЯ) ---
+        schemeZoom = intVal; // Запоминаем масштаб для схемы
+        
+        const grid = document.querySelector('#gridContainer .instruction-grid');
+        if (grid) {
+            grid.style.transform = `scale(${scale})`;
+            // Обновляем размеры контейнера, чтобы прокрутка работала корректно
+            const container = document.getElementById('gridContainer');
+            container.style.width = (grid.offsetWidth * scale) + 'px';
+            container.style.height = (grid.offsetHeight * scale) + 'px';
+        }
+    }
+}
         function toggleZoomPopup() { const p = document.getElementById('zoomPopup'); const btn = document.getElementById('zoomDisplayBtn'); p.classList.toggle('show'); btn.classList.toggle('btn-active-state'); }
         document.addEventListener('click', (e) => { const p = document.getElementById('zoomPopup'); const btn = document.getElementById('zoomDisplayBtn'); if(p.classList.contains('show') && !p.contains(e.target) && !btn.contains(e.target)) { p.classList.remove('show'); btn.classList.remove('btn-active-state'); } });
         function toggleZoomPopupFS() { const z = document.getElementById('fsZoomPopup'); if(z.classList.contains('show')) { z.classList.remove('show'); document.getElementById('fsZoomBtn').classList.remove('btn-active-state'); } else { z.classList.add('show'); document.getElementById('fsZoomBtn').classList.add('btn-active-state'); } }
         function toggleLock(groupId, inputId) { const group = document.getElementById(groupId); const input = document.getElementById(inputId); const btn = group.querySelector('.lock-toggle'); if(group.classList.contains('locked')) { group.classList.remove('locked'); input.disabled = false; btn.innerText = '🔓'; } else { group.classList.add('locked'); input.disabled = true; btn.innerText = '🔒'; } }
-        function toggleGestureLock() { gesturesLocked = !gesturesLocked; const btn = document.getElementById('gestureLockBtn'); btn.classList.toggle('active'); btn.innerText = gesturesLocked ? '🔒 БЛОК' : '🔓 БЛОК'; }
-        
-        function setupTouchGestures() { const el = document.getElementById('previewContainer'); let isDragging = false, startX, startY, startPanX, startPanY, initialDist = 0, startZoom = 100; 
-            const getCoord = (e) => { const r=document.getElementById('mainCanvas').getBoundingClientRect(); const sx=document.getElementById('mainCanvas').width/r.width; const sy=document.getElementById('mainCanvas').height/r.height; const cx=e.touches?e.touches[0].clientX:e.clientX; const cy=e.touches?e.touches[0].clientY:e.clientY; return {x:Math.floor((cx-r.left)*sx/10), y:Math.floor((cy-r.top)*sy/10)}; };
-            const paint = (e) => { if(!finalMatrix.length)return; const {x,y}=getCoord(e); if(y>=0&&y<finalMatrix.length&&x>=0&&x<finalMatrix[0].length){ if(finalMatrix[y][x]!==selectedBrushIndex){ finalMatrix[y][x]=selectedBrushIndex; const bW=parseInt(document.getElementById('borderWidth').value); if(generatedMatrix.length && x>=bW && x<finalMatrix[0].length-bW && y>=bW && y<finalMatrix.length-bW){ generatedMatrix[y-bW][x-bW]=selectedBrushIndex; } drawPreview(finalMatrix[0].length,finalMatrix.length); updateStats(); } } };
-            el.addEventListener('touchstart', (e) => { if(isPencil){pushHistory(); paint(e); return;} if(gesturesLocked || !sourceImage) return; if (e.touches.length === 1) { if(document.getElementById('group-panX').classList.contains('locked') && document.getElementById('group-panY').classList.contains('locked')) return; isDragging = true; startX = e.touches[0].clientX; startY = e.touches[0].clientY; startPanX = parseInt(document.getElementById('panX').value); startPanY = parseInt(document.getElementById('panY').value); } else if (e.touches.length === 2) { if(document.getElementById('group-zoom').classList.contains('locked')) return; isDragging = false; initialDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); startZoom = parseInt(document.getElementById('zoom').value); } }, {passive: false}); 
-            el.addEventListener('touchmove', (e) => { if(isPencil){paint(e); e.preventDefault(); return;} if(gesturesLocked || !sourceImage) return; e.preventDefault(); if (e.touches.length === 1 && isDragging) { const dx = e.touches[0].clientX - startX; const dy = e.touches[0].clientY - startY; const scaleFactor = 0.5; if(!document.getElementById('group-panX').classList.contains('locked')) { let newPanX = startPanX + (dx * scaleFactor); newPanX = Math.max(-100, Math.min(100, newPanX)); document.getElementById('panX').value = newPanX; document.getElementById('panXVal').innerText = Math.round(newPanX) + '%'; } if(!document.getElementById('group-panY').classList.contains('locked')) { let newPanY = startPanY + (dy * scaleFactor); newPanY = Math.max(-100, Math.min(100, newPanY)); document.getElementById('panY').value = newPanY; document.getElementById('panYVal').innerText = Math.round(newPanY) + '%'; } processImage(); } else if (e.touches.length === 2) { const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); const ratio = dist / initialDist; let newZoom = startZoom * ratio; newZoom = Math.max(1, Math.min(300, newZoom)); document.getElementById('zoom').value = newZoom; document.getElementById('zoomVal').innerText = Math.round(newZoom) + '%'; processImage(); } }, {passive: false}); 
-            el.addEventListener('touchend', () => { isDragging = false; }); }
+function toggleGestureLock() { 
+    gesturesLocked = !gesturesLocked; 
+    const btn = document.getElementById('gestureLockBtn'); 
+    btn.classList.toggle('active'); 
+    // Если активно (Green) -> 🔓 БЛОК, иначе -> 🔒 БЛОК
+    btn.innerText = gesturesLocked ? '🔓 БЛОК' : '🔒 БЛОК'; 
+}        
+function setupTouchGestures() { 
+    const el = document.getElementById('previewContainer'); 
+    let isDragging = false, startX, startY, startPanX, startPanY;
+    let startViewX, startViewY; // Для движения окна
+    let initialDist = 0, startZoom = 100, startGridZoom = 100; 
 
-        function setupMouseGestures() { const el = document.getElementById('previewContainer'); const getCoord = (e) => { const r=document.getElementById('mainCanvas').getBoundingClientRect(); const sx=document.getElementById('mainCanvas').width/r.width; const sy=document.getElementById('mainCanvas').height/r.height; return {x:Math.floor((e.clientX-r.left)*sx/10), y:Math.floor((e.clientY-r.top)*sy/10)}; }; const paint = (e) => { if(!finalMatrix.length)return; const {x,y}=getCoord(e); if(y>=0&&y<finalMatrix.length&&x>=0&&x<finalMatrix[0].length){ if(finalMatrix[y][x]!==selectedBrushIndex){ finalMatrix[y][x]=selectedBrushIndex; const bW=parseInt(document.getElementById('borderWidth').value); if(generatedMatrix.length && x>=bW && x<finalMatrix[0].length-bW && y>=bW && y<finalMatrix.length-bW){ generatedMatrix[y-bW][x-bW]=selectedBrushIndex; } drawPreview(finalMatrix[0].length,finalMatrix.length); updateStats(); } } }; el.addEventListener('wheel', (e) => { if(isPencil || gesturesLocked || !sourceImage || document.getElementById('group-zoom').classList.contains('locked')) return; e.preventDefault(); const delta = Math.sign(e.deltaY) * -10; let val = parseInt(document.getElementById('zoom').value) + delta; val = Math.max(1, Math.min(300, val)); document.getElementById('zoom').value = val; document.getElementById('zoomVal').innerText = val + '%'; processImage(); }, {passive: false}); let isMouseDown = false, startX, startY, startPanX, startPanY; el.addEventListener('mousedown', (e) => { if(isPencil) { pushHistory(); isMouseDown=true; paint(e); return; } if(gesturesLocked || !sourceImage) return; if(document.getElementById('group-panX').classList.contains('locked') && document.getElementById('group-panY').classList.contains('locked')) return; isMouseDown = true; el.style.cursor = 'grabbing'; startX = e.clientX; startY = e.clientY; startPanX = parseFloat(document.getElementById('panX').value); startPanY = parseFloat(document.getElementById('panY').value); }); window.addEventListener('mousemove', (e) => { if(!isMouseDown || !sourceImage) return; e.preventDefault(); if(isPencil) { paint(e); return; } const dx = e.clientX - startX; const dy = e.clientY - startY; const sensitivity = 0.5; if(!document.getElementById('group-panX').classList.contains('locked')) { let nx = startPanX + (dx * sensitivity); nx = Math.max(-100, Math.min(100, nx)); document.getElementById('panX').value = nx; document.getElementById('panXVal').innerText = Math.round(nx) + '%'; } if(!document.getElementById('group-panY').classList.contains('locked')) { let ny = startPanY + (dy * sensitivity); ny = Math.max(-100, Math.min(100, ny)); document.getElementById('panY').value = ny; document.getElementById('panYVal').innerText = Math.round(ny) + '%'; } processImage(); }); window.addEventListener('mouseup', () => { isMouseDown = false; if(!isPencil) el.style.cursor = 'grab'; }); }
+    // Вспомогательные функции для рисования (оставляем как были)
+    const getCoord = (e) => { const r=document.getElementById('mainCanvas').getBoundingClientRect(); const sx=document.getElementById('mainCanvas').width/r.width; const sy=document.getElementById('mainCanvas').height/r.height; const cx=e.touches?e.touches[0].clientX:e.clientX; const cy=e.touches?e.touches[0].clientY:e.clientY; return {x:Math.floor((cx-r.left)*sx/10), y:Math.floor((cy-r.top)*sy/10)}; };
+    const paint = (e) => { if(!finalMatrix.length)return; const {x,y}=getCoord(e); if(y>=0&&y<finalMatrix.length&&x>=0&&x<finalMatrix[0].length){ if(finalMatrix[y][x]!==selectedBrushIndex){ finalMatrix[y][x]=selectedBrushIndex; const bW=parseInt(document.getElementById('borderWidth').value); if(generatedMatrix.length && x>=bW && x<finalMatrix[0].length-bW && y>=bW && y<finalMatrix.length-bW){ generatedMatrix[y-bW][x-bW]=selectedBrushIndex; } drawPreview(finalMatrix[0].length,finalMatrix.length); updateStats(); } } };
+
+    el.addEventListener('touchstart', (e) => { 
+        if(isPencil){ pushHistory(); paint(e); return; } 
+        if(!sourceImage) return; 
+
+        if (e.touches.length === 1) { 
+            isDragging = true; 
+            startX = e.touches[0].clientX; 
+            startY = e.touches[0].clientY; 
+
+            if (!gesturesLocked) {
+                // РЕЖИМ 🔓 БЛОК (Серый)
+                startPanX = parseInt(document.getElementById('panX').value); 
+                startPanY = parseInt(document.getElementById('panY').value); 
+            } else {
+                // РЕЖИМ 🔒 БЛОК (Зеленый)
+                startViewX = viewX;
+                startViewY = viewY;
+            }
+        } else if (e.touches.length === 2) { 
+            isDragging = false; 
+            initialDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); 
+            
+            if (!gesturesLocked) {
+                 // РЕЖИМ 🔓 БЛОК (Серый)
+                startZoom = parseInt(document.getElementById('zoom').value); 
+            } else {
+                 // РЕЖИМ 🔒 БЛОК (Зеленый)
+                startGridZoom = parseInt(document.getElementById('gridZoom').value);
+            }
+        } 
+    }, {passive: false}); 
+
+    el.addEventListener('touchmove', (e) => { 
+        if(isPencil){ paint(e); e.preventDefault(); return; } 
+        if(!sourceImage) return; 
+        e.preventDefault(); 
+
+        // --- 1 ПАЛЕЦ: ПЕРЕМЕЩЕНИЕ ---
+        if (e.touches.length === 1 && isDragging) { 
+            const dx = e.touches[0].clientX - startX; 
+            const dy = e.touches[0].clientY - startY; 
+
+            if (!gesturesLocked) {
+                // СЕРЫЙ: Двигаем фото внутри
+                const scaleFactor = 0.5; 
+                if(!document.getElementById('group-panX').classList.contains('locked')) { 
+                    let newPanX = startPanX + (dx * scaleFactor); 
+                    newPanX = Math.max(-100, Math.min(100, newPanX)); 
+                    document.getElementById('panX').value = newPanX; 
+                    document.getElementById('panXVal').innerText = Math.round(newPanX) + '%'; 
+                } 
+                if(!document.getElementById('group-panY').classList.contains('locked')) { 
+                    let newPanY = startPanY + (dy * scaleFactor); 
+                    newPanY = Math.max(-100, Math.min(100, newPanY)); 
+                    document.getElementById('panY').value = newPanY; 
+                    document.getElementById('panYVal').innerText = Math.round(newPanY) + '%'; 
+                } 
+                processImage(); 
+            } else {
+                // ЗЕЛЕНЫЙ: Двигаем само окно результата
+                viewX = startViewX + dx;
+                viewY = startViewY + dy;
+                // Обновляем позицию через нашу новую функцию
+                updateGridScale(document.getElementById('gridZoom').value);
+            }
+        } 
+        // --- 2 ПАЛЬЦА: МАСШТАБ ---
+        else if (e.touches.length === 2) { 
+            const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); 
+            const ratio = dist / initialDist; 
+
+            if (!gesturesLocked) {
+                // СЕРЫЙ: Зум фото
+                let newZoom = startZoom * ratio; 
+                newZoom = Math.max(1, Math.min(300, newZoom)); 
+                document.getElementById('zoom').value = newZoom; 
+                document.getElementById('zoomVal').innerText = Math.round(newZoom) + '%'; 
+                processImage(); 
+            } else {
+                // ЗЕЛЕНЫЙ: Зум окна (ResultBox)
+                let newGZ = startGridZoom * ratio;
+                newGZ = Math.max(3, Math.min(200, newGZ)); // Ограничения зума окна
+                updateGridScale(newGZ);
+            }
+        } 
+    }, {passive: false}); 
+
+    el.addEventListener('touchend', () => { isDragging = false; }); 
+}
+
+function setupMouseGestures() { 
+    const el = document.getElementById('previewContainer'); 
+    
+    // Рисование (без изменений)
+    const getCoord = (e) => { const r=document.getElementById('mainCanvas').getBoundingClientRect(); const sx=document.getElementById('mainCanvas').width/r.width; const sy=document.getElementById('mainCanvas').height/r.height; return {x:Math.floor((e.clientX-r.left)*sx/10), y:Math.floor((e.clientY-r.top)*sy/10)}; }; 
+    const paint = (e) => { if(!finalMatrix.length)return; const {x,y}=getCoord(e); if(y>=0&&y<finalMatrix.length&&x>=0&&x<finalMatrix[0].length){ if(finalMatrix[y][x]!==selectedBrushIndex){ finalMatrix[y][x]=selectedBrushIndex; const bW=parseInt(document.getElementById('borderWidth').value); if(generatedMatrix.length && x>=bW && x<finalMatrix[0].length-bW && y>=bW && y<finalMatrix.length-bW){ generatedMatrix[y-bW][x-bW]=selectedBrushIndex; } drawPreview(finalMatrix[0].length,finalMatrix.length); updateStats(); } } }; 
+
+    // КОЛЕСО МЫШИ (ЗУМ)
+    el.addEventListener('wheel', (e) => { 
+        if(isPencil || !sourceImage) return; 
+        e.preventDefault(); 
+        const delta = Math.sign(e.deltaY) * -10; 
+
+        if (!gesturesLocked) {
+            // СЕРЫЙ: Зум фото
+            if(document.getElementById('group-zoom').classList.contains('locked')) return;
+            let val = parseInt(document.getElementById('zoom').value) + delta; 
+            val = Math.max(1, Math.min(300, val)); 
+            document.getElementById('zoom').value = val; 
+            document.getElementById('zoomVal').innerText = val + '%'; 
+            processImage(); 
+        } else {
+            // ЗЕЛЕНЫЙ: Зум окна
+            let val = parseInt(document.getElementById('gridZoom').value) + delta;
+            val = Math.max(3, Math.min(200, val));
+            updateGridScale(val);
+        }
+    }, {passive: false}); 
+
+    let isMouseDown = false, startX, startY, startPanX, startPanY, startViewX, startViewY; 
+
+    // НАЖАТИЕ МЫШИ
+    el.addEventListener('mousedown', (e) => { 
+        if(isPencil) { pushHistory(); isMouseDown=true; paint(e); return; } 
+        if(!sourceImage) return; 
+        
+        isMouseDown = true; 
+        el.style.cursor = 'grabbing'; 
+        startX = e.clientX; 
+        startY = e.clientY; 
+
+        if (!gesturesLocked) {
+            // СЕРЫЙ
+            startPanX = parseFloat(document.getElementById('panX').value); 
+            startPanY = parseFloat(document.getElementById('panY').value); 
+        } else {
+            // ЗЕЛЕНЫЙ
+            startViewX = viewX;
+            startViewY = viewY;
+        }
+    }); 
+
+    // ДВИЖЕНИЕ МЫШИ
+    window.addEventListener('mousemove', (e) => { 
+        if(!isMouseDown || !sourceImage) return; 
+        e.preventDefault(); 
+        if(isPencil) { paint(e); return; } 
+
+        const dx = e.clientX - startX; 
+        const dy = e.clientY - startY; 
+
+        if (!gesturesLocked) {
+            // СЕРЫЙ: Двигаем фото (Кадрирование)
+            const sensitivity = 0.5; 
+            if(!document.getElementById('group-panX').classList.contains('locked')) { 
+                let nx = startPanX + (dx * sensitivity); 
+                nx = Math.max(-100, Math.min(100, nx)); 
+                document.getElementById('panX').value = nx; 
+                document.getElementById('panXVal').innerText = Math.round(nx) + '%'; 
+            } 
+            if(!document.getElementById('group-panY').classList.contains('locked')) { 
+                let ny = startPanY + (dy * sensitivity); 
+                ny = Math.max(-100, Math.min(100, ny)); 
+                document.getElementById('panY').value = ny; 
+                document.getElementById('panYVal').innerText = Math.round(ny) + '%'; 
+            } 
+            processImage(); 
+        } else {
+            // ЗЕЛЕНЫЙ: Двигаем окно результата
+            viewX = startViewX + dx;
+            viewY = startViewY + dy;
+            updateGridScale(document.getElementById('gridZoom').value);
+        }
+    }); 
+
+    window.addEventListener('mouseup', () => { 
+        isMouseDown = false; 
+        if(!isPencil) el.style.cursor = 'grab'; 
+    }); 
+}
         function setupGridGestures() { const el = document.getElementById('instructionView'); let startDist = 0, startZoom = 100; el.addEventListener('touchstart', (e) => { if (e.touches.length === 2) { e.preventDefault(); startDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); startZoom = parseInt(document.getElementById('gridZoom').value); } }, {passive: false}); el.addEventListener('touchmove', (e) => { if (e.touches.length === 2) { e.preventDefault(); const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); updateGridScale(startZoom * (dist/startDist)); } }, {passive: false}); }
         function resetSlider(id, defVal) { if(document.getElementById('group-'+id).classList.contains('locked')) return; document.getElementById(id).value = defVal; let suffix = '%'; if(id === 'smartBlur' || id === 'posterize') suffix = ''; document.getElementById(id+'Val').innerText = defVal + suffix; if(sourceImage) processImage(); }
         function toggleFullscreen() { 
@@ -1621,18 +1863,65 @@ const data = { palette: currentPalette, stockAssists: stockAssists, aiBase: aiBa
         }
 
         function switchTab(t) {
-            document.querySelectorAll('.toggle-opt').forEach(b => b.classList.remove('active')); 
-            document.getElementById('tab-'+t).classList.add('active');
-            updateGridScale(document.getElementById('gridZoom').value);
-            
+    // Меняем активную кнопку в меню
+    document.querySelectorAll('.toggle-opt').forEach(b => b.classList.remove('active')); 
+    document.getElementById('tab-'+t).classList.add('active');
 
-            const isPreview = t === 'preview'; document.getElementById('previewContainer').style.display = isPreview ? 'flex' : 'none'; document.getElementById('instructionView').style.display = isPreview ? 'none' : 'block';
-            const pencilBtn = document.getElementById('pencilBtn'); const lockBtn = document.getElementById('gestureLockBtn');
-            if(isPreview) { pencilBtn.style.display = 'flex'; if(lockBtn) lockBtn.style.display = 'flex'; } else { pencilBtn.style.display = 'none'; if(lockBtn) lockBtn.style.display = 'none'; if(isPencil) togglePencil(); }
-            const nav = document.getElementById('sectorNav'); const zoomControl = document.getElementById('gridZoomControl'); nav.style.display = isPreview ? 'none' : 'block'; zoomControl.style.display = isPreview ? 'none' : 'block';
-            const stage = document.querySelector('.stage'); if(t === 'instruction') { stage.classList.add('expanded-mode'); } else { stage.classList.remove('expanded-mode'); }
-            if(!isPreview) drawGrid();
-        }
+    const isPreview = (t === 'preview');
+
+    // 1. Восстанавливаем масштаб для выбранной вкладки (внутри переменных)
+    if (isPreview) {
+        // Если перешли на ВИД
+        document.getElementById('gridZoom').value = previewZoom;
+        document.getElementById('zoomText').innerText = previewZoom + '%';
+        updateGridScale(previewZoom); // Применяем, чтобы картинка встала на место
+    } else {
+        // Если перешли на СХЕМУ
+        document.getElementById('gridZoom').value = schemeZoom;
+        document.getElementById('zoomText').innerText = schemeZoom + '%';
+        updateGridScale(schemeZoom); // Применяем, чтобы схема встала на место
+    }
+
+    // 2. Переключение видимости основных блоков
+    document.getElementById('previewContainer').style.display = isPreview ? 'flex' : 'none'; 
+    document.getElementById('instructionView').style.display = isPreview ? 'none' : 'block';
+    
+    // 3. Управление кнопками инструментов
+    const pencilBtn = document.getElementById('pencilBtn'); 
+    const lockBtn = document.getElementById('gestureLockBtn');
+    
+    if(isPreview) { 
+        pencilBtn.style.display = 'flex'; 
+        if(lockBtn) lockBtn.style.display = 'flex'; 
+    } else { 
+        pencilBtn.style.display = 'none'; 
+        if(lockBtn) lockBtn.style.display = 'none'; 
+        if(isPencil) togglePencil(); 
+    }
+    
+    // 4. Управление нижней навигацией и ЗУМОМ
+    const nav = document.getElementById('sectorNav'); 
+    const zoomControl = document.getElementById('gridZoomControl'); 
+    
+    nav.style.display = isPreview ? 'none' : 'block'; 
+    
+    // --- ИСПРАВЛЕНИЕ ЗДЕСЬ ---
+    // Если мы в ВИДЕ (isPreview = true) -> скрываем ползунок ('none')
+    // Если мы в СХЕМЕ (isPreview = false) -> показываем ('flex')
+    zoomControl.style.display = isPreview ? 'none' : 'flex'; 
+    // -------------------------
+
+    // 5. Режим карточки для мобильных
+    const stage = document.querySelector('.stage'); 
+    if(t === 'instruction') { 
+        stage.classList.add('expanded-mode'); 
+    } else { 
+        stage.classList.remove('expanded-mode'); 
+    }
+    
+    // Если открыли схему, нужно её отрисовать
+    if(!isPreview) drawGrid();
+}
 
         function togglePencil() { isPencil = !isPencil; document.getElementById('pencilBtn').classList.toggle('active', isPencil); document.querySelector('.viewport').classList.toggle('pencil-mode', isPencil); renderPaletteUI(); }
         function setSector(s) { currentSector = s; document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); if(s === 'all') document.getElementById('sec-all').classList.add('active'); else document.querySelector(`.nav-${s}`).classList.add('active'); drawGrid(); }
@@ -2806,19 +3095,19 @@ function cycleLayoutMode() {
     if (layoutModeState === 0) {
         // АВТО (Возвращаем как было)
         targetRule.conditionText = ORIGINAL_MEDIA_QUERY;
-        label.innerText = "PhotoBrick v2.1.8";
+        label.innerText = "PhotoBrick v2.2.0";
         label.style.color = "var(--text-sec)";
     } 
     else if (layoutModeState === 1) {
         // ПРИНУДИТЕЛЬНО МОБИЛЬНЫЙ (условие "all" срабатывает всегда)
         targetRule.conditionText = "all";
-        label.innerText = "PhotoBrick v2.1.8 (Mobile)";
+        label.innerText = "PhotoBrick v2.2.0 (Mobile)";
         label.style.color = "var(--primary)"; // Подсветим желтым/синим
     } 
     else if (layoutModeState === 2) {
         // ПРИНУДИТЕЛЬНО ПК (условие "max-width: 0px" никогда не сработает)
         targetRule.conditionText = "max-width: 0px";
-        label.innerText = "PhotoBrick v2.1.8 (PC)";
+        label.innerText = "PhotoBrick v2.2.0 (PC)";
         label.style.color = "var(--primary)";
     }
 }
