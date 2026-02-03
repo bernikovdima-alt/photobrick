@@ -68,7 +68,21 @@
         ::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.4); border-radius: 3px; }
 
         .app-container { display: grid; grid-template-columns: 340px 1fr; height: 100dvh; padding: 15px; gap: 15px; }
-        .sidebar { background: var(--glass-bg); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: var(--radius-lg); padding: 20px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+        .sidebar { 
+            background: var(--glass-bg); 
+            backdrop-filter: blur(20px); 
+            border: 1px solid var(--glass-border); 
+            border-radius: var(--radius-lg); 
+            padding: 20px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 12px; 
+            
+            overflow-y: auto;       /* Скролл появляется при необходимости */
+            
+            /* --- ВОТ ЭТА СТРОКА РЕШАЕТ ПРОБЛЕМУ --- */
+            scrollbar-gutter: stable; 
+        }
         
         .card { background: rgba(0, 0, 0, 0.05); border-radius: var(--radius-md); padding: 8px 10px; border: 1px solid var(--glass-border); }
         [data-theme="dark"] .card { background: rgba(0, 0, 0, 0.15); }
@@ -94,8 +108,33 @@
             background: rgba(128,128,128,0.3);
             color: var(--text-main);
         }
-        .panel-content { display: none; margin-top: 8px; background: rgba(0,0,0,0.1); padding: 8px; border-radius: 6px; border: 1px solid var(--glass-border); }
-
+        .panel-content { 
+            /* Скрытое состояние по умолчанию */
+            display: block;      /* Важно! Больше не none */
+            max-height: 0;       /* Высота 0 */
+            opacity: 0;          /* Прозрачность 0 */
+            overflow: hidden;    /* Обрезаем содержимое */
+            
+            /* Убираем отступы и рамки, чтобы они не занимали место */
+            margin-top: 0;       
+            padding: 0;          
+            border: 0px solid transparent; 
+            
+            background: rgba(0,0,0,0.1); 
+            border-radius: 6px; 
+            
+            /* Магия плавной анимации */
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+        }
+.panel-content.show { 
+            max-height: 500px;   /* Достаточно большая высота, чтобы влезло всё */
+            opacity: 1; 
+            
+            /* Возвращаем отступы и рамки */
+            margin-top: 8px; 
+            padding: 8px; 
+            border: 1px solid var(--glass-border); 
+        }
         .btn-active-state { background-color: var(--primary) !important; color: var(--on-primary) !important; border-color: var(--primary) !important; opacity: 1 !important; }
 
         .palette-actions { display: flex; gap: 10px; margin-top: 8px; }
@@ -994,8 +1033,18 @@
             const panel = document.getElementById(panelId);
             const btn = document.getElementById(btnId);
             const arrow = btn.querySelector('.settings-arrow');
-            if(panel.style.display === 'block') { panel.style.display = 'none'; btn.classList.remove('expanded'); arrow.classList.remove('rotated'); } 
-            else { panel.style.display = 'block'; btn.classList.add('expanded'); arrow.classList.add('rotated'); }
+            
+            // Переключаем класс анимации
+            panel.classList.toggle('show');
+            
+            // Управляем стилем кнопки и стрелочки
+            if(panel.classList.contains('show')) { 
+                btn.classList.add('expanded'); 
+                arrow.classList.add('rotated'); 
+            } else { 
+                btn.classList.remove('expanded'); 
+                arrow.classList.remove('rotated'); 
+            }
         }
 
         function changeRadius(delta) {
