@@ -186,7 +186,18 @@
         #instructionView { display: none; flex: 1; width: 100%; overflow: auto; padding: 20px; text-align: center; position: relative; touch-action: pan-x pan-y; -webkit-overflow-scrolling: touch; }
         #gridContainer { display: inline-block; text-align: left; padding-bottom: 50px; transform-origin: top left; }
         
-        .instruction-grid { display: inline-grid; background: white; color: black; border: 1px solid #999; transform-origin: top left; position: relative; }
+        .instruction-grid { 
+            display: inline-grid; 
+            background: white; 
+            color: black; 
+            border: 1px solid #999; 
+            position: relative; 
+            
+            /* --- ОПТИМИЗАЦИЯ --- */
+            transform-origin: 0 0; /* Точка зума всегда левый верх */
+            will-change: transform; /* Сообщаем браузеру, что будем менять масштаб */
+            /* Это переносит слой на видеокарту */
+        }
         .cell, .ruler-cell { display: flex; justify-content: center; align-items: center; border-top: 1px solid #ccc; border-left: 1px solid #ccc; width: 20px !important; height: 20px !important; min-width: 20px; min-height: 20px; font-weight: bold; font-size: 9px; cursor: pointer; box-sizing: border-box; transition: opacity 0.2s, filter 0.2s; }
         
         .ruler-cell { background: #eee; color: #333; transition: background 0.2s; }
@@ -990,6 +1001,11 @@
         let useMixMode = false;
         let activeHelperIdx = -1;
         let currentPalette = []; 
+// --- ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ (ВСТАВИТЬ В НАЧАЛО СКРИПТА) ---
+        let gridBaseWidth = 0;
+        let gridBaseHeight = 0;
+        let isTicking = false;
+        let zoomDebounceTimer = null;
         let aiBasePalette = []; 
         let sourceImage = null;
         let generatedMatrix = []; 
@@ -1162,40 +1178,63 @@ function resetResultView() {
     requestAnimationFrame(animate);
 }
 function updateGridScale(val) {
-    const intVal = Math.round(val);
-    const scale = intVal / 100;
-    
-    // Синхронизируем ползунки и текст
-    document.getElementById('gridZoom').value = intVal;
-    document.getElementById('fsGridZoom').value = intVal;
-    document.getElementById('zoomText').innerText = intVal + '%';
+            const grid = document.querySelector('#gridContainer .instruction-grid');
+            
+            // 1. ВКЛЮЧАЕМ GPU
+            if (grid) grid.style.willChange = 'transform';
 
-    // Проверяем, какая вкладка сейчас активна
-    const isPreviewActive = document.getElementById('tab-preview').classList.contains('active');
+            if (isTicking) return;
+            isTicking = true;
+            
+            requestAnimationFrame(() => {
+                const intVal = Math.round(val);
+                const scale = intVal / 100;
+                
+                const zoomInput = document.getElementById('gridZoom');
+                const fsZoomInput = document.getElementById('fsGridZoom');
+                const zoomText = document.getElementById('zoomText');
+                
+                if(zoomInput) zoomInput.value = intVal;
+                if(fsZoomInput) fsZoomInput.value = intVal;
+                if(zoomText) zoomText.innerText = intVal + '%';
 
-    if (isPreviewActive) {
-        // --- РЕЖИМ ПРЕВЬЮ (ВИД) ---
-        previewZoom = intVal; // Запоминаем масштаб для превью
-        
-        const resultWrapper = document.querySelector('#resultBox .image-wrapper');
-        if (resultWrapper) {
-            // Применяем зум и сдвиг только к окну результата
-            resultWrapper.style.transform = `translate(${viewX}px, ${viewY}px) scale(${scale})`;
+                const isPreviewActive = document.getElementById('tab-preview').classList.contains('active');
+
+                if (isPreviewActive) {
+                    previewZoom = intVal;
+                    const resultWrapper = document.querySelector('#resultBox .image-wrapper');
+                    if (resultWrapper) {
+                        resultWrapper.style.transform = `translate(${viewX}px, ${viewY}px) scale(${scale})`;
+                    }
+                } else {
+                    schemeZoom = intVal;
+                    const container = document.getElementById('gridContainer');
+                    
+                    if (grid && container) {
+                        grid.style.transform = `scale(${scale})`;
+                        
+                        // ЕСЛИ РАЗМЕРЫ ЕЩЕ НЕ ЗАПИСАНЫ - ЗАПИСЫВАЕМ СЕЙЧАС
+                        if (gridBaseWidth === 0 || gridBaseHeight === 0) {
+                            gridBaseWidth = grid.offsetWidth;
+                            gridBaseHeight = grid.offsetHeight;
+                        }
+
+                        if (gridBaseWidth > 0) {
+                            container.style.width = (gridBaseWidth * scale) + 'px';
+                            container.style.height = (gridBaseHeight * scale) + 'px';
+                        }
+                    }
+                }
+                
+                isTicking = false;
+            });
+
+            // 2. DEBOUNCE (Четкость)
+            if (zoomDebounceTimer) clearTimeout(zoomDebounceTimer);
+            zoomDebounceTimer = setTimeout(() => {
+                if (grid) grid.style.willChange = 'auto'; 
+            }, 300);
         }
-    } else {
-        // --- РЕЖИМ СХЕМЫ (ИНСТРУКЦИЯ) ---
-        schemeZoom = intVal; // Запоминаем масштаб для схемы
-        
-        const grid = document.querySelector('#gridContainer .instruction-grid');
-        if (grid) {
-            grid.style.transform = `scale(${scale})`;
-            // Обновляем размеры контейнера, чтобы прокрутка работала корректно
-            const container = document.getElementById('gridContainer');
-            container.style.width = (grid.offsetWidth * scale) + 'px';
-            container.style.height = (grid.offsetHeight * scale) + 'px';
-        }
-    }
-}
         function toggleZoomPopup() { const p = document.getElementById('zoomPopup'); const btn = document.getElementById('zoomDisplayBtn'); p.classList.toggle('show'); btn.classList.toggle('btn-active-state'); }
         document.addEventListener('click', (e) => { const p = document.getElementById('zoomPopup'); const btn = document.getElementById('zoomDisplayBtn'); if(p.classList.contains('show') && !p.contains(e.target) && !btn.contains(e.target)) { p.classList.remove('show'); btn.classList.remove('btn-active-state'); } });
         function toggleZoomPopupFS() { const z = document.getElementById('fsZoomPopup'); if(z.classList.contains('show')) { z.classList.remove('show'); document.getElementById('fsZoomBtn').classList.remove('btn-active-state'); } else { z.classList.add('show'); document.getElementById('fsZoomBtn').classList.add('btn-active-state'); } }
@@ -2205,11 +2244,13 @@ const data = { palette: currentPalette, stockAssists: stockAssists, aiBase: aiBa
             const grid = document.createElement('div'); 
             grid.className = 'instruction-grid'; 
             
-            const cellW = isPrint ? 25 : 20;
+            // Включаем GPU сразу при создании
+            if (!isPrint) {
+                grid.style.willChange = 'transform';
+                grid.style.transformOrigin = '0 0';
+            }
             
-            // --- ИСПРАВЛЕНИЕ 1: Меняем 280px на auto, чтобы колонка расширялась ---
-            // Было: ... 280px`;
-            // Стало: ... auto`;
+            const cellW = isPrint ? 25 : 20;
             grid.style.gridTemplateColumns = `25px repeat(${visW}, ${cellW}px) auto`;
 
             // Верхняя линейка
@@ -2227,7 +2268,6 @@ const data = { palette: currentPalette, stockAssists: stockAssists, aiBase: aiBa
 
             // Основная сетка
             for(let y=sY; y<eY; y++) {
-                // Номер ряда
                 const rC = createCell('ruler-cell', y+1); 
                 rC.setAttribute('data-y', y); 
                 if(!isPrint) rC.onclick = function() { toggleRowVisibility(y); }; 
@@ -2237,7 +2277,6 @@ const data = { palette: currentPalette, stockAssists: stockAssists, aiBase: aiBa
 
                 for(let x=sX; x<eX; x++) { 
                     const idx = finalMatrix[y][x]; 
-                    
                     if (!rowStats[idx]) rowStats[idx] = 0;
                     rowStats[idx]++;
 
@@ -2263,30 +2302,44 @@ const data = { palette: currentPalette, stockAssists: stockAssists, aiBase: aiBa
                     grid.appendChild(cell); 
                 }
 
-                // Инфо-панель справа
+                // Инфо-панель
                 const info = document.createElement('div'); 
                 info.className = 'row-info'; 
                 info.setAttribute('data-y', y); 
                 
                 const presentIndices = Object.keys(rowStats).map(Number).sort((a,b) => a-b);
-                
                 presentIndices.forEach(idx => {
                     const count = rowStats[idx];
                     const pCol = displayPalette[idx] || '#000';
                     const pSym = displaySymbols[idx] || '?';
-                    
                     const pHex = pCol.replace('#','');
                     const pR = parseInt(pHex.substr(0,2),16), pG = parseInt(pHex.substr(2,2),16), pB = parseInt(pHex.substr(4,2),16); 
                     const textCol = (pR*0.299 + pG*0.587 + pB*0.114) > 186 ? '#000' : '#fff';
 
-                    // --- ИСПРАВЛЕНИЕ 2: Сделали отступы компактнее (margin-right:2px) ---
                     info.innerHTML += `<span style="padding:0 3px; border-radius:3px; margin-right:2px; display:inline-block; font-size:9px; height:14px; line-height:14px; background:${pCol}; color:${textCol}; border:1px solid rgba(0,0,0,0.2);">${pSym}:${count}</span>`;
                 });
 
                 if(!isPrint) info.onclick = function() { toggleRowVisibility(y); }; 
                 grid.appendChild(info);
             }
+            
             container.appendChild(grid);
+            
+            // --- ВАЖНО: ЗАПОМИНАЕМ РАЗМЕРЫ ТУТ ---
+            if (!isPrint) {
+                // Сбрасываем масштаб перед измерением, чтобы получить "чистый" размер
+                grid.style.transform = 'scale(1)';
+                gridBaseWidth = grid.offsetWidth;
+                gridBaseHeight = grid.offsetHeight;
+                
+                // Возвращаем масштаб как на ползунке
+                const currentScale = parseInt(document.getElementById('gridZoom').value) / 100;
+                grid.style.transform = `scale(${currentScale})`;
+                
+                // Сразу применяем размер контейнеру
+                container.style.width = (gridBaseWidth * currentScale) + 'px';
+                container.style.height = (gridBaseHeight * currentScale) + 'px';
+            }
         }
 
         function createCell(cls, txt) { const d=document.createElement('div'); d.className=cls; d.innerText=txt; return d; }
