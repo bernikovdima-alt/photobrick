@@ -7,6 +7,58 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <style>
+
+/* СТИЛИ ЭКРАНА ЗАГРУЗКИ */
+        .loading-overlay {
+            position: fixed;
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85); /* Темный фон */
+            z-index: 20000; /* Поверх всего */
+            display: none; /* Скрыт по умолчанию */
+            justify-content: center; 
+            align-items: center;
+            backdrop-filter: blur(8px); /* Размытие фона */
+            flex-direction: column;
+        }
+
+        .loading-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .loading-spinner {
+            width: 60px;
+            height: 60px;
+            border: 5px solid rgba(255, 255, 255, 0.1);
+            border-top: 5px solid var(--primary); /* Ваш желтый цвет */
+            border-radius: 50%;
+            animation: spin 1s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite;
+        }
+
+        .loading-text {
+            color: var(--primary);
+            font-size: 18px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes spin { 
+            0% { transform: rotate(0deg); } 
+            100% { transform: rotate(360deg); } 
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(0.95); }
+        }
+
         :root {
             --bg-gradient: radial-gradient(circle at top left, #1e1e24, #121212);
             --glass-bg: rgba(30, 30, 30, 0.95);
@@ -439,9 +491,11 @@
 
             /* СТИЛИ РАМКИ (перенесены с .preview-content) */
             border-radius: 8px;
+
 /* --- ВОТ ЭТА СТРОКА РЕШАЕТ ПРОБЛЕМУ --- */
             overflow: hidden; /* Обрезает всё, что вылезает за радиус */
             /* -------------------------------------- */
+
             /* box-shadow: 0 10px 30px rgba(0,0,0,0.3); */
             /* border: 1px solid var(--primary); */
             padding: 1px;
@@ -2459,86 +2513,93 @@ const data = { palette: currentPalette, stockAssists: stockAssists, aiBase: aiBa
         async function preparePrint() {
             if(!sourceImage) return;
             
-            document.body.style.cursor = 'wait';
+            // 1. ПОКАЗЫВАЕМ ЭКРАН ЗАГРУЗКИ
+            const overlay = document.getElementById('loadingOverlay');
+            overlay.style.display = 'flex';
 
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({
-                orientation: 'p',
-                unit: 'mm',
-                format: 'a4'
-            });
+            // Даем браузеру мгновение на отрисовку анимации перед тяжелой работой
+            await new Promise(resolve => setTimeout(resolve, 100));
 
-            const margin = 20;
-            const pageWidth = 210;
-            const pageHeight = 297;
-            const safeW = pageWidth - (margin * 2);
-            
-            // --- СТРАНИЦА 1: ТИТУЛЬНЫЙ ЛИСТ ---
-            
-            // 1. Генерируем шапку с текстом и легендой как картинку (чтобы не было проблем с кодировкой)
-            const headerImg = await renderTitlePageHeader(safeW);
-            
-            // Вставляем шапку
-            // Вычисляем высоту шапки в PDF координатах (сохраняя пропорции)
-            const headerProps = doc.getImageProperties(headerImg);
-            const headerPdfH = (headerProps.height * safeW) / headerProps.width;
-            
-            doc.addImage(headerImg, 'PNG', margin, margin, safeW, headerPdfH);
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF({
+                    orientation: 'p',
+                    unit: 'mm',
+                    format: 'a4'
+                });
 
-            // 2. Вставляем основное превью ниже шапки
-            const mainCanvas = document.getElementById('mainCanvas');
-            const imgData = mainCanvas.toDataURL('image/png');
-            
-            const currentY = margin + headerPdfH + 10; // 10мм отступ от шапки
-            const hRem = pageHeight - margin - currentY; // Оставшееся место
-            
-            if (hRem > 50) {
-                addImageFit(doc, imgData, margin, currentY, safeW, hRem);
-            }
-
-            // --- СТРАНИЦЫ СЕКТОРОВ ---
-            const fullW = finalMatrix[0].length;
-            const fullH = finalMatrix.length;
-            const midX = Math.ceil(fullW / 2);
-            const midY = Math.ceil(fullH / 2);
-
-            // Список страниц с заголовками
-            const sectors = [
-                { name: 'ЛЕВЫЙ ВЕРХ', sx: 0, ex: midX, sy: 0, ey: midY },
-                { name: 'ПРАВЫЙ ВЕРХ', sx: midX, ex: fullW, sy: 0, ey: midY },
-                { name: 'ЛЕВЫЙ НИЗ', sx: 0, ex: midX, sy: midY, ey: fullH },
-                { name: 'ПРАВЫЙ НИЗ', sx: midX, ex: fullW, sy: midY, ey: fullH },
-                { name: 'ОБЩИЙ ВИД', sx: 0, ex: fullW, sy: 0, ey: fullH }
-            ];
-
-            for (let i = 0; i < sectors.length; i++) {
-                const s = sectors[i];
-                if (s.sx >= s.ex || s.sy >= s.ey) continue;
-
-                doc.addPage();
-
-                // 1. Рисуем заголовок страницы (как картинку)
-                const titleImg = await renderTextToImage(s.name, 24);
-                doc.addImage(titleImg, 'PNG', margin, 10, safeW, 10); // Высота заголовка около 10мм
-
-                // 2. Генерируем и вставляем схему
-                const sectorImg = await renderSectorToImage(s.sx, s.ex, s.sy, s.ey);
+                const margin = 20;
+                const pageWidth = 210;
+                const pageHeight = 297;
+                const safeW = pageWidth - (margin * 2);
                 
-                // Вставляем ниже заголовка (y = 25мм), учитывая поля
-                const contentH = pageHeight - 25 - margin;
-                addImageFit(doc, sectorImg, margin, 25, safeW, contentH);
-            }
+                // --- СТРАНИЦА 1: ТИТУЛЬНЫЙ ЛИСТ ---
+                
+                // Шапка
+                const headerImg = await renderTitlePageHeader(safeW);
+                const headerProps = doc.getImageProperties(headerImg);
+                const headerPdfH = (headerProps.height * safeW) / headerProps.width;
+                doc.addImage(headerImg, 'PNG', margin, margin, safeW, headerPdfH);
 
-            document.body.style.cursor = 'default';
-            window.open(doc.output('bloburl'), '_blank');
+                // Превью (JPEG 0.8)
+                const mainCanvas = document.getElementById('mainCanvas');
+                const imgData = mainCanvas.toDataURL('image/jpeg', 0.8);
+                
+                const currentY = margin + headerPdfH + 10; 
+                const hRem = pageHeight - margin - currentY; 
+                
+                if (hRem > 50) {
+                    addImageFit(doc, imgData, margin, currentY, safeW, hRem);
+                }
+
+                // --- СТРАНИЦЫ СЕКТОРОВ ---
+                const fullW = finalMatrix[0].length;
+                const fullH = finalMatrix.length;
+                const midX = Math.ceil(fullW / 2);
+                const midY = Math.ceil(fullH / 2);
+
+                const sectors = [
+                    { name: 'ЛЕВЫЙ ВЕРХ', sx: 0, ex: midX, sy: 0, ey: midY },
+                    { name: 'ПРАВЫЙ ВЕРХ', sx: midX, ex: fullW, sy: 0, ey: midY },
+                    { name: 'ЛЕВЫЙ НИЗ', sx: 0, ex: midX, sy: midY, ey: fullH },
+                    { name: 'ПРАВЫЙ НИЗ', sx: midX, ex: fullW, sy: midY, ey: fullH },
+                    { name: 'ОБЩИЙ ВИД', sx: 0, ex: fullW, sy: 0, ey: fullH }
+                ];
+
+                for (let i = 0; i < sectors.length; i++) {
+                    const s = sectors[i];
+                    if (s.sx >= s.ex || s.sy >= s.ey) continue;
+
+                    doc.addPage();
+
+                    // Заголовок
+                    const titleImg = await renderTextToImage(s.name, 24);
+                    doc.addImage(titleImg, 'PNG', margin, 10, safeW, 10);
+
+                    // Схема (Small Cells)
+                    const sectorImg = await renderSectorToImage(s.sx, s.ex, s.sy, s.ey);
+                    
+                    const contentH = pageHeight - 25 - margin;
+                    addImageFit(doc, sectorImg, margin, 25, safeW, contentH);
+                }
+
+                window.open(doc.output('bloburl'), '_blank');
+
+            } catch (err) {
+                console.error(err);
+                alert("Ошибка при создании PDF");
+            } finally {
+                // 2. СКРЫВАЕМ ЭКРАН В ЛЮБОМ СЛУЧАЕ (ДАЖЕ ПРИ ОШИБКЕ)
+                overlay.style.display = 'none';
+            }
         }
 
         // Рендер шапки титульного листа (Заголовок + Параметры + Легенда цветов)
         function renderTitlePageHeader(pdfWidthMm) {
             return new Promise((resolve) => {
-                const scale = 4; // Высокое разрешение
-                const w = pdfWidthMm * 3.78 * scale; // перевод мм в пиксели
-                // Примерная высота, будем увеличивать если цветов много, но для старта хватит
+                // --- ОПТИМИЗАЦИЯ: Scale 2 вместо 4 ---
+                const scale = 2; 
+                const w = pdfWidthMm * 3.78 * scale; 
                 const h = 1000 * scale; 
                 
                 const cvs = document.createElement('canvas');
@@ -2546,7 +2607,6 @@ const data = { palette: currentPalette, stockAssists: stockAssists, aiBase: aiBa
                 cvs.height = h; 
                 const ctx = cvs.getContext('2d');
                 
-                // Фон белый
                 ctx.fillStyle = '#ffffff';
                 ctx.fillRect(0,0,w,h);
 
@@ -2571,7 +2631,6 @@ const data = { palette: currentPalette, stockAssists: stockAssists, aiBase: aiBa
                 cursorY += 40 * scale;
 
                 // 3. Легенда цветов
-                // Считаем цвета
                 const counts = new Array(currentPalette.length).fill(0);
                 flat.forEach(i => { if(counts[i] !== undefined) counts[i]++; });
 
@@ -2580,40 +2639,33 @@ const data = { palette: currentPalette, stockAssists: stockAssists, aiBase: aiBa
                 const fontSize = 12 * scale;
                 ctx.font = `normal ${fontSize}px sans-serif`;
                 
-                let startX = 20 * scale; // Отступ слева внутри картинки
+                let startX = 20 * scale; 
                 let curX = startX;
-                
-                // Центрируем блок легенды
-                // Простая раскладка: идем слева направо, если не влезаем - новая строка
                 
                 currentPalette.forEach((color, i) => {
                     if (counts[i] > 0) {
                         const sym = currentSymbolSet[i] || "?";
                         const txt = ` ${sym} = ${counts[i]} шт.`;
                         const textWidth = ctx.measureText(txt).width;
-                        const itemWidth = boxSize + textWidth + (15 * scale); // 15px отступ
+                        const itemWidth = boxSize + textWidth + (15 * scale);
 
-                        // Если не влезает в ширину, перенос строки
                         if (curX + itemWidth > w - startX) {
                             curX = startX;
                             cursorY += boxSize + (15 * scale);
                         }
 
-                        // Рисуем квадрат цвета
                         ctx.fillStyle = color;
                         ctx.fillRect(curX, cursorY, boxSize, boxSize);
                         ctx.strokeStyle = '#000000';
-                        ctx.lineWidth = 2;
+                        ctx.lineWidth = 1 * scale; // Чуть тоньше линия
                         ctx.strokeRect(curX, cursorY, boxSize, boxSize);
 
-                        // Рисуем символ внутри квадрата
                         ctx.fillStyle = getContrastColor(color);
                         ctx.textAlign = 'center';
                         ctx.textBaseline = 'middle';
-                        ctx.font = `bold ${fontSize}px sans-serif`; // Жирный для символа
+                        ctx.font = `bold ${fontSize}px sans-serif`;
                         ctx.fillText(sym, curX + boxSize/2, cursorY + boxSize/2);
 
-                        // Рисуем текст количества
                         ctx.fillStyle = '#000000';
                         ctx.textAlign = 'left';
                         ctx.font = `normal ${fontSize}px sans-serif`;
@@ -2623,7 +2675,6 @@ const data = { palette: currentPalette, stockAssists: stockAssists, aiBase: aiBa
                     }
                 });
                 
-                // Обрезаем лишнюю высоту канваса
                 const finalH = cursorY + boxSize + (20 * scale);
                 const finalCvs = document.createElement('canvas');
                 finalCvs.width = w;
@@ -2631,6 +2682,7 @@ const data = { palette: currentPalette, stockAssists: stockAssists, aiBase: aiBa
                 const fCtx = finalCvs.getContext('2d');
                 fCtx.drawImage(cvs, 0, 0);
                 
+                // Используем JPEG 0.8 для легенды (там много цветов) или PNG
                 resolve(finalCvs.toDataURL('image/png'));
             });
         }
@@ -2638,8 +2690,8 @@ const data = { palette: currentPalette, stockAssists: stockAssists, aiBase: aiBa
         // Рендер простого текста в картинку (для заголовков страниц)
         function renderTextToImage(text, sizeMm) {
             return new Promise((resolve) => {
-                const scale = 4;
-                // Ширина условно А4 (пиксели)
+                // --- ОПТИМИЗАЦИЯ: Scale 2 вместо 4 ---
+                const scale = 2;
                 const w = 210 * 3.78 * scale; 
                 const h = sizeMm * 3.78 * scale;
                 
@@ -2648,11 +2700,8 @@ const data = { palette: currentPalette, stockAssists: stockAssists, aiBase: aiBa
                 cvs.height = h;
                 const ctx = cvs.getContext('2d');
                 
-                // Белый фон не нужен, пусть будет прозрачный или белый
-                // ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,w,h); 
-                
                 ctx.fillStyle = '#000000';
-                ctx.font = `bold ${16 * scale}px sans-serif`; // Размер шрифта
+                ctx.font = `bold ${16 * scale}px sans-serif`; 
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 
@@ -2678,19 +2727,27 @@ const data = { palette: currentPalette, stockAssists: stockAssists, aiBase: aiBa
 
         function renderSectorToImage(sx, ex, sy, ey) {
             return new Promise((resolve) => {
-                const cellSize = 30; 
-                const headerSize = 30;
+                // --- ОПТИМИЗАЦИЯ: Размер ячейки 15px вместо 30px ---
+                const cellSize = 15; 
+                const headerSize = 15; // Тоже уменьшаем заголовок
+                
                 const cols = ex - sx;
                 const rows = ey - sy;
                 const cvs = document.createElement('canvas');
                 cvs.width = headerSize + (cols * cellSize);
                 cvs.height = headerSize + (rows * cellSize);
                 const ctx = cvs.getContext('2d');
+                
+                // Белый фон
                 ctx.fillStyle = '#ffffff';
                 ctx.fillRect(0, 0, cvs.width, cvs.height);
-                ctx.font = 'bold 14px sans-serif';
+                
+                // Шрифт поменьше
+                ctx.font = 'bold 8px sans-serif'; 
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
+                
+                // Линейки
                 ctx.fillStyle = '#eeeeee';
                 ctx.fillRect(0, 0, cvs.width, headerSize); 
                 ctx.fillRect(0, 0, headerSize, cvs.height); 
@@ -2698,6 +2755,7 @@ const data = { palette: currentPalette, stockAssists: stockAssists, aiBase: aiBa
                 ctx.lineWidth = 1;
                 ctx.beginPath();
                 ctx.fillStyle = '#333333';
+                
                 for (let x = 0; x < cols; x++) {
                     const absX = sx + x + 1;
                     const pX = headerSize + (x * cellSize);
@@ -2711,19 +2769,24 @@ const data = { palette: currentPalette, stockAssists: stockAssists, aiBase: aiBa
                     ctx.rect(0, pY, headerSize, cellSize);
                 }
                 ctx.stroke();
+
+                // Ячейки
                 for (let y = 0; y < rows; y++) {
                     for (let x = 0; x < cols; x++) {
                         const idx = finalMatrix[sy + y][sx + x];
                         const color = currentPalette[idx];
                         const sym = currentSymbolSet[idx] || "?";
+                        
                         const pX = headerSize + (x * cellSize);
                         const pY = headerSize + (y * cellSize);
+                        
                         ctx.fillStyle = color;
                         ctx.fillRect(pX, pY, cellSize, cellSize);
                         ctx.strokeRect(pX, pY, cellSize, cellSize);
+                        
                         const contrast = getContrastColor(color);
                         ctx.fillStyle = contrast;
-                        ctx.font = 'bold 16px sans-serif'; 
+                        ctx.font = 'bold 9px sans-serif'; // Чуть больше, чтобы читалось
                         ctx.fillText(sym, pX + cellSize/2, pY + cellSize/2);
                     }
                 }
@@ -3414,6 +3477,11 @@ function cycleLayoutMode() {
 }
 
     </script>
+<div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">СОЗДАЕМ ШЕДЕВР...</div>
+        </div>
+    </div>
 </body>
 </html>
-
