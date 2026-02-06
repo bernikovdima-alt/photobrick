@@ -439,6 +439,9 @@
 
             /* СТИЛИ РАМКИ (перенесены с .preview-content) */
             border-radius: 8px;
+/* --- ВОТ ЭТА СТРОКА РЕШАЕТ ПРОБЛЕМУ --- */
+            overflow: hidden; /* Обрезает всё, что вылезает за радиус */
+            /* -------------------------------------- */
             /* box-shadow: 0 10px 30px rgba(0,0,0,0.3); */
             /* border: 1px solid var(--primary); */
             padding: 1px;
