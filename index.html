@@ -777,6 +777,25 @@ min-width: 30px; /* Чтобы не сжималась слишком сильн
     margin-top: 10px;
     padding: 8px;
 }
+/* --- СТИЛИ ДЛЯ МОБИЛЬНОГО ГОРИЗОНТАЛЬНОГО РЕЖИМА --- */
+@media (max-width: 1023px) and (orientation: landscape) {
+    
+    /* 1. Кнопки "Назад" (Undo) и "Карандаш" */
+    .header-left .icon-small {
+        width: 28px !important;       /* Ширина как у переключателя */
+        height: 28px !important;      /* Высота как у переключателя */
+        font-size: 14px !important;   /* Уменьшаем размер значка */
+        line-height: 28px !important; /* Центровка */
+    }
+
+    /* 2. Кнопка "БЛОК" */
+    .header-left .lock-btn {
+        height: 28px !important;      /* Высота как у переключателя */
+        font-size: 9px !important;    /* Шрифт поменьше */
+        padding: 0 8px !important;    /* Компактные отступы */
+        line-height: 26px !important; /* Центровка текста */
+    }
+}
     </style>
 </head>
 <body data-theme="dark">
