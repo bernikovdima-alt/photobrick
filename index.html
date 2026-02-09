@@ -276,7 +276,7 @@
             padding-left: 5px; /* Уменьшили отступ */
             border-top: 1px solid #ccc; 
             height: 20px; 
-            width: 350px /* Убрали */
+            width: 350px; /* Убрали */
             font-size: 10px; 
             background: #f4f4f4; 
             color: #111; 
@@ -674,7 +674,7 @@
         <button class="reset-vis-btn" onclick="resetGridVisibility()" title="Показать всё">👁</button>
         <button id="fsZoomBtn" class="reset-vis-btn" onclick="toggleZoomPopupFS()" style="background:var(--glass-bg); border: 1px solid var(--glass-border);" title="Масштаб">🔍</button>
         <div id="fsZoomPopup" class="zoom-popup-unified">
-            <input type="range" class="horizontal-range" id="fsGridZoom" min="3" max="200" value="100" oninput="updateGridScale(this.value)">
+            <input type="range" class="horizontal-range" id="fsGridZoom" min="3" max="800" value="100" oninput="updateGridScale(this.value)">
         </div>
     </div>
 
@@ -979,7 +979,7 @@
                     <div id="gridZoomControl" style="position:relative; display:none;">
                         <button class="zoom-display-btn" id="zoomDisplayBtn" onclick="toggleZoomPopup()"><span>🔍</span> <span id="zoomText">100%</span></button>
                         <div id="zoomPopup" class="zoom-popup-unified">
-                             <input type="range" class="horizontal-range" id="gridZoom" min="3" max="200" value="100" oninput="updateGridScale(this.value)">
+                             <input type="range" class="horizontal-range" id="gridZoom" min="3" max="800" value="100" oninput="updateGridScale(this.value)">
                         </div>
                     </div>
                 </div>
@@ -1306,10 +1306,14 @@ function toggleGestureLock() {
 function setupTouchGestures() { 
     const el = document.getElementById('previewContainer'); 
     let isDragging = false, startX, startY, startPanX, startPanY;
-    let startViewX, startViewY; // Для движения окна
-    let initialDist = 0, startZoom = 100, startGridZoom = 100; 
+    let startViewX, startViewY; 
+    let initialDist = 0;
+    
+    // Переменные для зума
+    let startZoom = 100; 
+    let startGridZoom = 100; 
 
-    // Вспомогательные функции для рисования (оставляем как были)
+    // Вспомогательные функции рисования
     const getCoord = (e) => { const r=document.getElementById('mainCanvas').getBoundingClientRect(); const sx=document.getElementById('mainCanvas').width/r.width; const sy=document.getElementById('mainCanvas').height/r.height; const cx=e.touches?e.touches[0].clientX:e.clientX; const cy=e.touches?e.touches[0].clientY:e.clientY; return {x:Math.floor((cx-r.left)*sx/10), y:Math.floor((cy-r.top)*sy/10)}; };
     const paint = (e) => { if(!finalMatrix.length)return; const {x,y}=getCoord(e); if(y>=0&&y<finalMatrix.length&&x>=0&&x<finalMatrix[0].length){ if(finalMatrix[y][x]!==selectedBrushIndex){ finalMatrix[y][x]=selectedBrushIndex; const bW=parseInt(document.getElementById('borderWidth').value); if(generatedMatrix.length && x>=bW && x<finalMatrix[0].length-bW && y>=bW && y<finalMatrix.length-bW){ generatedMatrix[y-bW][x-bW]=selectedBrushIndex; } drawPreview(finalMatrix[0].length,finalMatrix.length); updateStats(); } } };
 
@@ -1317,32 +1321,30 @@ function setupTouchGestures() {
         if(isPencil){ pushHistory(); paint(e); return; } 
         if(!sourceImage) return; 
 
+        // --- ФИКС: ОБНОВЛЯЕМ ЗНАЧЕНИЯ ПРИ КАЖДОМ КАСАНИИ ---
+        // Это предотвращает сброс на 100% при повторном касании
+        startZoom = parseInt(document.getElementById('zoom').value) || 100;
+        startGridZoom = parseInt(document.getElementById('gridZoom').value) || 100;
+        // ---------------------------------------------------
+
         if (e.touches.length === 1) { 
             isDragging = true; 
             startX = e.touches[0].clientX; 
             startY = e.touches[0].clientY; 
 
             if (!gesturesLocked) {
-                // РЕЖИМ 🔓 БЛОК (Серый)
+                // СЕРЫЙ РЕЖИМ (Двигаем фото)
                 startPanX = parseInt(document.getElementById('panX').value); 
                 startPanY = parseInt(document.getElementById('panY').value); 
             } else {
-                // РЕЖИМ 🔒 БЛОК (Зеленый)
+                // ЗЕЛЕНЫЙ РЕЖИМ (Двигаем окно результата)
                 startViewX = viewX;
                 startViewY = viewY;
             }
         } else if (e.touches.length === 2) { 
-            isDragging = false; 
-            initialDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); 
-            
-            if (!gesturesLocked) {
-                 // РЕЖИМ 🔓 БЛОК (Серый)
-                startZoom = parseInt(document.getElementById('zoom').value); 
-            } else {
-                 // РЕЖИМ 🔒 БЛОК (Зеленый)
-                startGridZoom = parseInt(document.getElementById('gridZoom').value);
-            }
-        } 
+            const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); 
+            initialDist = dist; 
+        }
     }, {passive: false}); 
 
     el.addEventListener('touchmove', (e) => { 
@@ -1356,7 +1358,7 @@ function setupTouchGestures() {
             const dy = e.touches[0].clientY - startY; 
 
             if (!gesturesLocked) {
-                // СЕРЫЙ: Двигаем фото внутри
+                // СЕРЫЙ
                 const scaleFactor = 0.5; 
                 if(!document.getElementById('group-panX').classList.contains('locked')) { 
                     let newPanX = startPanX + (dx * scaleFactor); 
@@ -1372,11 +1374,11 @@ function setupTouchGestures() {
                 } 
                 processImage(); 
             } else {
-                // ЗЕЛЕНЫЙ: Двигаем само окно результата
+                // ЗЕЛЕНЫЙ (Окно результата)
                 viewX = startViewX + dx;
                 viewY = startViewY + dy;
-                // Обновляем позицию через нашу новую функцию
-                updateGridScale(document.getElementById('gridZoom').value);
+                // При перемещении используем ТЕКУЩИЙ зум, который мы считали в touchstart
+                updateGridScale(startGridZoom);
             }
         } 
         // --- 2 ПАЛЬЦА: МАСШТАБ ---
@@ -1385,16 +1387,18 @@ function setupTouchGestures() {
             const ratio = dist / initialDist; 
 
             if (!gesturesLocked) {
-                // СЕРЫЙ: Зум фото
+                // СЕРЫЙ
                 let newZoom = startZoom * ratio; 
                 newZoom = Math.max(1, Math.min(300, newZoom)); 
                 document.getElementById('zoom').value = newZoom; 
                 document.getElementById('zoomVal').innerText = Math.round(newZoom) + '%'; 
                 processImage(); 
             } else {
-                // ЗЕЛЕНЫЙ: Зум окна (ResultBox)
+                // ЗЕЛЕНЫЙ
                 let newGZ = startGridZoom * ratio;
-                newGZ = Math.max(3, Math.min(200, newGZ)); // Ограничения зума окна
+                // --- ЗДЕСЬ ТЕПЕРЬ 800% ---
+                newGZ = Math.max(3, Math.min(800, newGZ)); 
+                
                 updateGridScale(newGZ);
             }
         } 
@@ -1417,7 +1421,7 @@ function setupMouseGestures() {
         const delta = Math.sign(e.deltaY) * -10; 
 
         if (!gesturesLocked) {
-            // СЕРЫЙ: Зум фото
+            // СЕРЫЙ РЕЖИМ: Зум фото
             if(document.getElementById('group-zoom').classList.contains('locked')) return;
             let val = parseInt(document.getElementById('zoom').value) + delta; 
             val = Math.max(1, Math.min(300, val)); 
@@ -1425,9 +1429,14 @@ function setupMouseGestures() {
             document.getElementById('zoomVal').innerText = val + '%'; 
             processImage(); 
         } else {
-            // ЗЕЛЕНЫЙ: Зум окна
-            let val = parseInt(document.getElementById('gridZoom').value) + delta;
-            val = Math.max(3, Math.min(200, val));
+            // ЗЕЛЕНЫЙ РЕЖИМ: Зум окна (РЕЗУЛЬТАТ)
+            let currentVal = parseInt(document.getElementById('gridZoom').value);
+            let val = currentVal + delta;
+            
+            // --- ВАЖНО: ЗДЕСЬ БЫЛО 200, СТАВИМ 800 ---
+            val = Math.max(3, Math.min(800, val)); 
+            // ----------------------------------------
+            
             updateGridScale(val);
         }
     }, {passive: false}); 
@@ -1465,7 +1474,7 @@ function setupMouseGestures() {
         const dy = e.clientY - startY; 
 
         if (!gesturesLocked) {
-            // СЕРЫЙ: Двигаем фото (Кадрирование)
+            // СЕРЫЙ: Двигаем фото
             const sensitivity = 0.5; 
             if(!document.getElementById('group-panX').classList.contains('locked')) { 
                 let nx = startPanX + (dx * sensitivity); 
