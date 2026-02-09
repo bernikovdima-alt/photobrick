@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PhotoBrick v2.2.0</title>
+    <title>PhotoBrick v2.3.0</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <style>
@@ -864,13 +864,15 @@
             <div class="card">
                 <div class="card-header">Стили палитры</div>
                 <select class="modern-select" id="palettePreset">
-                    <option value="custom_ai">Свой AI (Реколор)</option>
-                    <option value="original">Оригинал (Smart AI)</option>
                     <option value="bw" selected>Черно-белый</option>
-                    <option value="popart">ЛЕГО</option>
+                    <option value="original">Оригинал (Smart AI)</option>
                     <option value="custom">Свой (Градиент)</option>
+                    <option value="popart">ЛЕГО</option>
                     <option value="smart_neon">Умный Неон</option>
                     <option value="random_chaos">Случайный (Хаос)</option>
+                    <option value="pixelart">Pixel Art</option>
+                    <option value="custom_ai">Свой AI (Реколор)</option>
+    </select>
                 </select>
 
                 <div class="slider-group" id="colorCountGroup" style="display:none; margin-bottom:10px;">
@@ -962,7 +964,7 @@
             </div>
             
             <div id="versionLabel" onclick="cycleLayoutMode()" style="text-align:center; font-size:10px; color:var(--text-sec); margin-top:20px; opacity:0.6; cursor:pointer; user-select:none;" title="Нажми для смены режима (Auto/Mobile/PC)">
-    PhotoBrick v2.2.0
+    PhotoBrick v2.3.0
 </div>
         </aside>
 
@@ -1155,14 +1157,18 @@ document.getElementById('symbolSet').onchange = (e) => {
             };
             ['zoom', 'contrast', 'brightness', 'panX', 'panY', 'smartBlur', 'sharpness', 'posterize'].forEach(id => { document.getElementById(id).oninput = (e) => { let suffix = '%'; if(id === 'smartBlur' || id === 'posterize') suffix = ''; document.getElementById(id+'Val').innerText = e.target.value + suffix; if(sourceImage) processImage(); }; });
             document.getElementById('palettePreset').onchange = (e) => { 
-                pushHistory(); 
-                const val = e.target.value; 
-                const showCount = ['original', 'random_chaos', 'custom', 'custom_ai', 'smart_neon'].includes(val); 
-                document.getElementById('colorCountGroup').style.display = showCount ? 'block' : 'none'; 
-                const showRefresh = ['smart_neon', 'original', 'random_chaos', 'custom_ai', 'bw', 'popart', 'custom'].includes(val); 
-                document.getElementById('refreshPaletteBtn').style.display = showRefresh ? 'flex' : 'none'; 
-                applyPaletteLogic(val); 
-            };
+    pushHistory(); 
+    const val = e.target.value; 
+    
+    // ДОБАВИЛ 'pixelart' СЮДА, чтобы появлялся ползунок кол-ва цветов
+    const showCount = ['original', 'random_chaos', 'custom', 'custom_ai', 'smart_neon', 'pixelart'].includes(val); 
+    document.getElementById('colorCountGroup').style.display = showCount ? 'block' : 'none'; 
+    
+    const showRefresh = ['smart_neon', 'original', 'random_chaos', 'custom_ai', 'bw', 'popart', 'custom', 'pixelart'].includes(val); 
+    document.getElementById('refreshPaletteBtn').style.display = showRefresh ? 'flex' : 'none'; 
+    
+    applyPaletteLogic(val); 
+};
             document.getElementById('colorCount').oninput = (e) => { document.getElementById('colorCountVal').innerText = e.target.value; };
             document.getElementById('colorCount').onchange = () => { 
                 pushHistory(); 
@@ -1178,6 +1184,10 @@ document.getElementById('symbolSet').onchange = (e) => {
                     generateSmartPalette(true); 
                 } 
                 else if (val === 'popart') { refreshSmartPalette(); } 
+else if (val === 'pixelart') { 
+        extractPaletteQuantized(); // Пересчитываем цвета по новому числу
+        aiBasePalette = [];        // Сбрасываем кэш
+    }
                 renderPaletteUI(); processImage(); 
             };
             const setSizeSelect = document.getElementById('setSize'); setSizeSelect.onchange = () => { document.getElementById('customSizeGroup').style.display = (setSizeSelect.value === 'custom') ? 'flex' : 'none'; if(sourceImage) processImage(); }; document.getElementById('customWidth').oninput = () => { if(sourceImage) processImage(); }; document.getElementById('customHeight').oninput = () => { if(sourceImage) processImage(); };
@@ -1639,7 +1649,23 @@ if(d.hiddenRegions) {
                 renderPaletteUI(); 
                 return; 
             }
-            
+            // Если выбран Pixel Art, мы хотим использовать цвета с фото (как Original)
+           if (val === 'pixelart') {
+    // 1. Устанавливаем дефолтное значение (например, 16 цветов - классика ретро)
+    let curVal = parseInt(document.getElementById('colorCount').value);
+    if (curVal < 2) curVal = 16; 
+    document.getElementById('colorCount').value = curVal;
+    document.getElementById('colorCountVal').innerText = curVal;
+
+    // 2. Генерируем палитру из картинки (иначе она останется ЧБ или прошлой)
+    extractPaletteQuantized(); 
+    aiBasePalette = []; // Сбрасываем базу, чтобы использовать текущую
+    
+    renderPaletteUI();
+    // Важно: если есть картинка, запускаем процесс
+    if(sourceImage) processImage();
+    return;
+}
             // --- 4. ОРИГИНАЛ (SMART AI - теперь 12) ---
             if (val === 'original') { 
                 // !!! УСТАНАВЛИВАЕМ 12 ЦВЕТОВ ПО УМОЛЧАНИЮ !!!
@@ -1844,6 +1870,16 @@ if(d.hiddenRegions) {
             }
 
             workCtx.putImageData(workImgData, 0, 0);
+if (preset === 'pixelart') {
+    // Берем данные, которые только что обработали (уже с яркостью/контрастом)
+    let pxData = workCtx.getImageData(0, 0, workW, workH);
+    
+    // Применяем наш эффект контура и насыщенности
+    applyPixelArtFilter(pxData.data, workW, workH);
+    
+    // Возвращаем обратно на холст
+    workCtx.putImageData(pxData, 0, 0);
+}
 
             const canvas = document.getElementById('procCanvas'); const ctx = canvas.getContext('2d', { willReadFrequently: true }); canvas.width = w; canvas.height = h; 
             ctx.drawImage(workCanvas, 0, 0, w, h);
@@ -2086,6 +2122,10 @@ const data = { palette: currentPalette, stockAssists: stockAssists, aiBase: aiBa
             else if (val === 'popart') { 
                 extractPaletteQuantized(); aiBasePalette = [...currentPalette]; currentPalette = [...LEGO_PALETTE]; 
             }
+else if (val === 'pixelart') {  // <<<<< ДОБАВЛЕНО
+        extractPaletteQuantized();  // <<<<< Генерируем палитру заново
+        aiBasePalette = [];         // <<<<< Сбрасываем базу
+    }
             renderPaletteUI(); 
             if(sourceImage) processImage(); 
         }
@@ -3468,23 +3508,76 @@ function cycleLayoutMode() {
     if (layoutModeState === 0) {
         // АВТО (Возвращаем как было)
         targetRule.conditionText = ORIGINAL_MEDIA_QUERY;
-        label.innerText = "PhotoBrick v2.2.0";
+        label.innerText = "PhotoBrick v2.3.0";
         label.style.color = "var(--text-sec)";
     } 
     else if (layoutModeState === 1) {
         // ПРИНУДИТЕЛЬНО МОБИЛЬНЫЙ (условие "all" срабатывает всегда)
         targetRule.conditionText = "all";
-        label.innerText = "PhotoBrick v2.2.0 (Mobile)";
+        label.innerText = "PhotoBrick v2.3.0 (Mobile)";
         label.style.color = "var(--primary)"; // Подсветим желтым/синим
     } 
     else if (layoutModeState === 2) {
         // ПРИНУДИТЕЛЬНО ПК (условие "max-width: 0px" никогда не сработает)
         targetRule.conditionText = "max-width: 0px";
-        label.innerText = "PhotoBrick v2.2.0 (PC)";
+        label.innerText = "PhotoBrick v2.3.0 (PC)";
         label.style.color = "var(--primary)";
     }
 }
+// --- ФУНКЦИЯ ДЛЯ ЭФФЕКТА PIXEL ART ---
+function applyPixelArtFilter(data, width, height) {
+    const output = new Uint8ClampedArray(data);
+    const threshold = 30; // Чувствительность краев (чем меньше, тем больше линий)
+    
+    // 1. Усиливаем насыщенность (Saturation Boost) для мультяшности
+    const saturation = 1.5; // +50% насыщенности
+    for (let i = 0; i < data.length; i += 4) {
+        const r = data[i], g = data[i+1], b = data[i+2];
+        const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+        output[i] = Math.min(255, Math.max(0, gray + (r - gray) * saturation));
+        output[i+1] = Math.min(255, Math.max(0, gray + (g - gray) * saturation));
+        output[i+2] = Math.min(255, Math.max(0, gray + (b - gray) * saturation));
+    }
 
+    // 2. Рисуем черный контур (алгоритм Собеля упрощенный)
+    // Проходим по каждому пикселю
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const idx = (y * width + x) * 4;
+            
+            // Берем яркость текущего пикселя
+            const lum = (output[idx] + output[idx+1] + output[idx+2]) / 3;
+
+            // Берем яркость соседа справа и снизу
+            let rightLum = lum;
+            let bottomLum = lum;
+
+            if (x < width - 1) {
+                const rIdx = (y * width + (x + 1)) * 4;
+                rightLum = (output[rIdx] + output[rIdx+1] + output[rIdx+2]) / 3;
+            }
+            if (y < height - 1) {
+                const bIdx = ((y + 1) * width + x) * 4;
+                bottomLum = (output[bIdx] + output[bIdx+1] + output[bIdx+2]) / 3;
+            }
+
+            // Если разница в яркости большая — значит это край
+            const diff = Math.abs(lum - rightLum) + Math.abs(lum - bottomLum);
+
+            if (diff > threshold) {
+                // Красим в ЧЕРНЫЙ (Контур)
+                data[idx] = 0;
+                data[idx+1] = 0;
+                data[idx+2] = 0;
+            } else {
+                // Оставляем насыщенный цвет
+                data[idx] = output[idx];
+                data[idx+1] = output[idx+1];
+                data[idx+2] = output[idx+2];
+            }
+        }
+    }
+}
     </script>
 <div id="loadingOverlay" class="loading-overlay">
         <div class="loading-content">
