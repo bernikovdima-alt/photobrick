@@ -345,16 +345,61 @@
 
         .preview-label { margin: 0; background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 6px; font-size: 9px; color: #fff; text-transform: uppercase; position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 5; pointer-events: none; border: 1px solid rgba(255,255,255,0.2); white-space: nowrap; line-height: normal; }
 
-        .mode-toggle { background: var(--glass-bg); padding: 2px; border-radius: 30px; border: 1px solid var(--glass-border); height: 28px; display: flex; align-items: center; flex-shrink: 0; }
-        .toggle-opt { padding: 0 10px; height: 22px; display: flex; align-items: center; border-radius: 24px; cursor: pointer; font-size: 9px; font-weight: 700; color: var(--text-sec); text-transform: uppercase;}
-        .toggle-opt.active { background: var(--primary); color: var(--on-primary); }
+        /* --- СТАБИЛЬНЫЙ CSS С ПЛАВНЫМ ЗАТУХАНИЕМ --- */
+.mode-toggle { 
+    background: var(--glass-bg); 
+    padding: 2px; 
+    border-radius: 30px; 
+    border: 1px solid var(--glass-border); 
+    height: 28px; 
+    display: flex; 
+    align-items: center; 
+    flex-shrink: 0; 
+}
+
+.toggle-opt { 
+    padding: 0 10px; 
+    height: 22px; 
+    display: flex; 
+    align-items: center; 
+    border-radius: 24px; 
+    cursor: pointer; 
+    font-size: 9px; 
+    font-weight: 700; 
+    color: var(--text-sec); 
+    text-transform: uppercase;
+    background: transparent; /* По умолчанию фона нет */
+    
+    /* ВОТ ЭТА СТРОКА ДЕЛАЕТ ПЛАВНОСТЬ (0.3 секунды) */
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.toggle-opt.active { 
+    background: var(--primary); 
+    color: var(--on-primary); 
+}
         
         .lock-btn { height: 28px; padding: 0 10px; border-radius: 20px; background: var(--glass-bg); border: 1px solid var(--glass-border); color: var(--text-sec); cursor: pointer; font-size: 9px; font-weight: 700; text-transform: uppercase; display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
         .lock-btn.active { background-color: #28a745 !important; color: #fff !important; border-color: #28a745 !important; }
         
         .top-btn { height: 28px; padding: 0 10px; border-radius: 20px; background: var(--glass-bg); border: 1px solid var(--glass-border); color: var(--text-main); cursor: pointer; font-size: 9px; font-weight: 700; flex-shrink: 0;}
         
-        .zoom-display-btn { height: 28px; padding: 0 10px; border-radius: 20px; border: 1px solid var(--glass-border); background: var(--glass-bg); color: var(--text-main); font-size: 9px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-left: 5px; }
+        .zoom-display-btn { 
+height: 28px; 
+padding: 0 10px; 
+border-radius: 30px; 
+border: 1px solid var(--glass-border); 
+background: var(--glass-bg); 
+color: var(--text-main); 
+font-size: 9px; 
+font-weight: 700; 
+cursor: pointer; 
+display: flex; 
+align-items: center; 
+justify-content: center; 
+margin-left: 5px; 
+min-width: 30px; /* Чтобы не сжималась слишком сильно */
+    white-space: nowrap; /* Чтобы текст не переносился */}
         .zoom-display-btn span { color: var(--text-main); }
         .zoom-display-btn.btn-active-state span { color: var(--on-primary); }
 
@@ -409,7 +454,7 @@
             .header-bar { padding: 20px 30px; } 
             .mode-toggle { height: 40px; padding: 4px; border-radius: 40px; }
             .toggle-opt { height: 32px; padding: 0 20px; font-size: 12px; border-radius: 30px; }
-            .top-btn, .zoom-display-btn { height: 40px; width: 40px; font-size: 18px; border-radius: 12px; }
+            .top-btn, .zoom-display-btn { height: 40px; width: 40px; font-size: 18px; border-radius: 30px; }
             .zoom-display-btn { width: 60px; font-size: 12px; }
             .floating-nav { top: 70px; left: 30px; width: 120px; height: 120px; }
         }
