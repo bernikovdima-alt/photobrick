@@ -424,8 +424,33 @@ min-width: 30px; /* Чтобы не сжималась слишком сильн
         
         .custom-size-inputs { display:flex; gap: 5px; }
 
-        .icon-small { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; background: var(--glass-bg); border-radius: 50%; border: 1px solid var(--glass-border); margin-left: 5px; color: var(--text-main); }
-        [data-theme="light"] .icon-small { background: rgba(0,0,0,0.05); }
+        /* НАЙДИТЕ И ЗАМЕНИТЕ ЭТОТ БЛОК */
+.icon-small { 
+    width: 36px;         /* Ширина 28px */
+    height: 36px;        /* Высота 28px */
+    font-size: 20px;     /* Размер самой стрелочки внутри */
+    
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    cursor: pointer; 
+    background: var(--glass-bg); 
+    border-radius: 50%; /* Круглая форма */
+    border: 1px solid var(--glass-border); 
+    margin-left: 5px; 
+    color: var(--text-main); 
+    transition: transform 0.1s; /* Добавим легкую анимацию нажатия */
+}
+
+/* Эффект нажатия */
+.icon-small:active {
+    transform: scale(0.9);
+}
+
+/* Светлая тема (уже есть в коде, но для надежности) */
+[data-theme="light"] .icon-small { 
+    background: rgba(0,0,0,0.05); 
+}
         
         .icon-small.active { background-color: var(--primary) !important; color: var(--on-primary) !important; border-color:var(--primary) !important; opacity: 1; }
 
