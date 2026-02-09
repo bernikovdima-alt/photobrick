@@ -379,7 +379,7 @@
     color: var(--on-primary); 
 }
         
-        .lock-btn { height: 28px; padding: 0 10px; border-radius: 20px; background: var(--glass-bg); border: 1px solid var(--glass-border); color: var(--text-sec); cursor: pointer; font-size: 9px; font-weight: 700; text-transform: uppercase; display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+        .lock-btn { height: 36px; padding: 0 10px; border-radius: 20px; background: var(--glass-bg); border: 1px solid var(--glass-border); color: var(--text-sec); cursor: pointer; font-size: 12px; font-weight: 700; text-transform: uppercase; display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
         .lock-btn.active { background-color: #28a745 !important; color: #fff !important; border-color: #28a745 !important; }
         
         .top-btn { height: 28px; padding: 0 10px; border-radius: 20px; background: var(--glass-bg); border: 1px solid var(--glass-border); color: var(--text-main); cursor: pointer; font-size: 9px; font-weight: 700; flex-shrink: 0;}
@@ -437,7 +437,7 @@ min-width: 30px; /* Чтобы не сжималась слишком сильн
     background: var(--glass-bg); 
     border-radius: 50%; /* Круглая форма */
     border: 1px solid var(--glass-border); 
-    margin-left: 5px; 
+    margin-left: 0px; 
     color: var(--text-main); 
     transition: transform 0.1s; /* Добавим легкую анимацию нажатия */
 }
@@ -494,7 +494,21 @@ min-width: 30px; /* Чтобы не сжималась слишком сильн
                 padding: 4px; /* Отступ от края экрана */
                 gap: 10px !important; /* ЗАЗОР МЕЖДУ ВЕРХНИМ И НИЖНИМ ОКНОМ */
                 overflow: hidden; 
-            }
+/* --- УМЕНЬШЕНИЕ КНОПОК "НАЗАД" И "КАРАНДАШ" (ТОЛЬКО МОБИЛЬНЫЕ) --- */
+    .header-left .icon-small {
+        width: 28px !important;       /* Ширина как у переключателя Вид/Схема */
+        height: 28px !important;      /* Высота как у переключателя Вид/Схема */
+        font-size: 14px !important;   /* Уменьшаем иконку внутри */
+        line-height: 28px !important; /* Центровка по вертикали */
+    }
+/* --- УМЕНЬШЕНИЕ КНОПКИ "БЛОК" (ТОЛЬКО МОБИЛЬНЫЕ) --- */
+    .header-left .lock-btn {
+        height: 28px !important;      /* Высота как у переключателя */
+        font-size: 9px !important;    /* Шрифт поменьше, чтобы влезло */
+        padding: 0 8px !important;    /* Чуть меньше отступы по бокам */
+        line-height: 26px !important; /* Центровка текста */
+    }            
+}
             
             /* 2. Верхняя карта (Сцена): Скругленная, с рамкой, гибкая */
             .stage { 
@@ -734,6 +748,35 @@ min-width: 30px; /* Чтобы не сжималась слишком сильн
             border-color: var(--primary);
             background: rgba(var(--primary-rgb), 0.1);
         }
+
+/* --- ВСТАВИТЬ В КОНЕЦ БЛОКА <style> --- */
+
+/* Настройки анимации меню рамки */
+#borderControl {
+    display: block !important; /* Убираем display:none */
+    overflow: hidden;          /* Скрываем всё, что не влезает */
+    
+    /* Начальное состояние (скрыто) */
+    max-height: 0;
+    opacity: 0;
+    margin-top: 0;
+    padding: 0;
+    border: 0px solid transparent;
+
+    background: rgba(0,0,0,0.1);
+    border-radius: 6px;
+    
+    /* Магия плавности (как у других панелей) */
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Состояние (раскрыто) - добавляется классом .show */
+#borderControl.show {
+    max-height: 150px; /* Высота с запасом */
+    opacity: 1;
+    margin-top: 10px;
+    padding: 8px;
+}
     </style>
 </head>
 <body data-theme="dark">
@@ -898,7 +941,7 @@ min-width: 30px; /* Чтобы не сжималась слишком сильн
         <button id="borderBtn" class="btn btn-sec" style="width:auto; padding:0 8px; white-space: nowrap;" onclick="toggleBorderControl()">РАМКА</button>
     </div>
     
-    <div id="borderControl" style="display: none; margin-top: 10px; padding: 8px; background: rgba(0,0,0,0.1); border-radius: 6px;">
+    <div id="borderControl">
         <div class="slider-header-compact"><span class="slider-label">Толщина рамки: <span class="val-display" id="borderWidthVal">0</span></span></div>
         <input type="range" id="borderWidth" min="0" max="5" value="0" oninput="updateBorderSettings()">
         <select class="modern-select" id="borderColor" style="margin-top:5px; padding:6px;" onchange="updateBorderSettings()"></select>
@@ -1770,12 +1813,13 @@ if(d.hiddenRegions) {
     const panel = document.getElementById('borderControl');
     const btn = document.getElementById('borderBtn');
     
-    if (panel.style.display === 'none') {
-        panel.style.display = 'block';
-        // Добавляем класс активного состояния (цвет подстроится под тему сам)
+    // Переключаем класс .show (он запустит CSS анимацию)
+    panel.classList.toggle('show');
+    
+    // Красим кнопку, если меню открыто
+    if (panel.classList.contains('show')) {
         btn.classList.add('btn-active-state');
     } else {
-        panel.style.display = 'none';
         btn.classList.remove('btn-active-state');
     }
 }
