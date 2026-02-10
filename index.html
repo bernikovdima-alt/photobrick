@@ -796,9 +796,30 @@ min-width: 30px; /* Чтобы не сжималась слишком сильн
         line-height: 26px !important; /* Центровка текста */
     }
 }
+/* --- ЭФФЕКТ ПЕРЕХОДА (ШТОРКА) --- */
+#transitionOverlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #000; /* Черный цвет */
+    z-index: 100000;        /* Поверх всего, даже загрузки */
+    opacity: 0;             /* Прозрачный по умолчанию */
+    pointer-events: none;   /* Пропускает клики сквозь себя */
+    
+    /* Плавность: 0.95 секунды */
+    transition: opacity 0.91s ease-in-out;
+}
+
+#transitionOverlay.active {
+    opacity: 1;             /* Полностью черный */
+    pointer-events: auto;   /* Блокирует клики во время перехода */
+}
     </style>
 </head>
 <body data-theme="dark">
+<div id="transitionOverlay"></div>
     <div id="dropOverlay">Перетащите файл сюда</div>
     <div id="fsExitBtn" onclick="toggleFullscreen()">✖</div>
 
@@ -1647,14 +1668,16 @@ function setupMouseGestures() {
         function setupGridGestures() { const el = document.getElementById('instructionView'); let startDist = 0, startZoom = 100; el.addEventListener('touchstart', (e) => { if (e.touches.length === 2) { e.preventDefault(); startDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); startZoom = parseInt(document.getElementById('gridZoom').value); } }, {passive: false}); el.addEventListener('touchmove', (e) => { if (e.touches.length === 2) { e.preventDefault(); const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); updateGridScale(startZoom * (dist/startDist)); } }, {passive: false}); }
         function resetSlider(id, defVal) { if(document.getElementById('group-'+id).classList.contains('locked')) return; document.getElementById(id).value = defVal; let suffix = '%'; if(id === 'smartBlur' || id === 'posterize') suffix = ''; document.getElementById(id+'Val').innerText = defVal + suffix; if(sourceImage) processImage(); }
         function toggleFullscreen() { 
-            document.body.classList.toggle('fullscreen-mode'); 
-            
-            // НОВАЯ СТРОКА: Принудительно обновляем масштаб при входе/выходе
-            updateGridScale(document.getElementById('gridZoom').value);
-            
-            refreshGridVisibility(); 
-        }
+    // Оборачиваем логику фулскрина в анимацию
+    runTransition(() => {
+        document.body.classList.toggle('fullscreen-mode'); 
         
+        // Принудительно обновляем масштаб при входе/выходе
+        updateGridScale(document.getElementById('gridZoom').value);
+        
+        refreshGridVisibility(); 
+    });
+}
         function handleUpload(e) { 
             const file = e.target.files[0]; 
             if(!file) return; 
@@ -2384,68 +2407,83 @@ else if (val === 'pixelart') {  // <<<<< ДОБАВЛЕНО
                 circleEl.style.color = getContrastColor(val); 
             } 
         }
-
-        function switchTab(t) {
-    // Меняем активную кнопку в меню
-    document.querySelectorAll('.toggle-opt').forEach(b => b.classList.remove('active')); 
-    document.getElementById('tab-'+t).classList.add('active');
-
-    const isPreview = (t === 'preview');
-
-    // 1. Восстанавливаем масштаб для выбранной вкладки (внутри переменных)
-    if (isPreview) {
-        // Если перешли на ВИД
-        document.getElementById('gridZoom').value = previewZoom;
-        document.getElementById('zoomText').innerText = previewZoom + '%';
-        updateGridScale(previewZoom); // Применяем, чтобы картинка встала на место
-    } else {
-        // Если перешли на СХЕМУ
-        document.getElementById('gridZoom').value = schemeZoom;
-        document.getElementById('zoomText').innerText = schemeZoom + '%';
-        updateGridScale(schemeZoom); // Применяем, чтобы схема встала на место
-    }
-
-    // 2. Переключение видимости основных блоков
-    document.getElementById('previewContainer').style.display = isPreview ? 'flex' : 'none'; 
-    document.getElementById('instructionView').style.display = isPreview ? 'none' : 'block';
+// Функция-помощник для плавного перехода
+function runTransition(callback) {
+    const overlay = document.getElementById('transitionOverlay');
     
-    // 3. Управление кнопками инструментов
-    const pencilBtn = document.getElementById('pencilBtn'); 
-    const lockBtn = document.getElementById('gestureLockBtn');
+    // 1. Включаем затемнение
+    overlay.classList.add('active');
     
-    if(isPreview) { 
-        pencilBtn.style.display = 'flex'; 
-        if(lockBtn) lockBtn.style.display = 'flex'; 
-    } else { 
-        pencilBtn.style.display = 'none'; 
-        if(lockBtn) lockBtn.style.display = 'none'; 
-        if(isPencil) togglePencil(); 
-    }
-    
-    // 4. Управление нижней навигацией и ЗУМОМ
-    const nav = document.getElementById('sectorNav'); 
-    const zoomControl = document.getElementById('gridZoomControl'); 
-    
-    nav.style.display = isPreview ? 'none' : 'block'; 
-    
-    // --- ИСПРАВЛЕНИЕ ЗДЕСЬ ---
-    // Если мы в ВИДЕ (isPreview = true) -> скрываем ползунок ('none')
-    // Если мы в СХЕМЕ (isPreview = false) -> показываем ('flex')
-    zoomControl.style.display = isPreview ? 'none' : 'flex'; 
-    // -------------------------
-
-    // 5. Режим карточки для мобильных
-    const stage = document.querySelector('.stage'); 
-    if(t === 'instruction') { 
-        stage.classList.add('expanded-mode'); 
-    } else { 
-        stage.classList.remove('expanded-mode'); 
-    }
-    
-    // Если открыли схему, нужно её отрисовать
-    if(!isPreview) drawGrid();
+    // 2. Ждем, пока экран станет черным (250мс как в CSS)
+    setTimeout(() => {
+        
+        // 3. Выполняем "резкое" действие (переключение вкладок или фулскрина)
+        callback();
+        
+        // 4. Даем браузеру отрисовать изменения и убираем затемнение
+        requestAnimationFrame(() => {
+            setTimeout(() => {
+                overlay.classList.remove('active');
+            }, 50);
+        });
+        
+    }, 250);
 }
+       function switchTab(t) {
+    // Оборачиваем всю логику в анимацию
+    runTransition(() => {
+        // Меняем активную кнопку в меню
+        document.querySelectorAll('.toggle-opt').forEach(b => b.classList.remove('active')); 
+        document.getElementById('tab-'+t).classList.add('active');
 
+        const isPreview = (t === 'preview');
+
+        // 1. Восстанавливаем масштаб
+        if (isPreview) {
+            document.getElementById('gridZoom').value = previewZoom;
+            document.getElementById('zoomText').innerText = previewZoom + '%';
+            updateGridScale(previewZoom); 
+        } else {
+            document.getElementById('gridZoom').value = schemeZoom;
+            document.getElementById('zoomText').innerText = schemeZoom + '%';
+            updateGridScale(schemeZoom); 
+        }
+
+        // 2. Переключение видимости
+        document.getElementById('previewContainer').style.display = isPreview ? 'flex' : 'none'; 
+        document.getElementById('instructionView').style.display = isPreview ? 'none' : 'block';
+        
+        // 3. Управление кнопками
+        const pencilBtn = document.getElementById('pencilBtn'); 
+        const lockBtn = document.getElementById('gestureLockBtn');
+        
+        if(isPreview) { 
+            pencilBtn.style.display = 'flex'; 
+            if(lockBtn) lockBtn.style.display = 'flex'; 
+        } else { 
+            pencilBtn.style.display = 'none'; 
+            if(lockBtn) lockBtn.style.display = 'none'; 
+            if(isPencil) togglePencil(); 
+        }
+        
+        // 4. Навигация
+        const nav = document.getElementById('sectorNav'); 
+        const zoomControl = document.getElementById('gridZoomControl'); 
+        
+        nav.style.display = isPreview ? 'none' : 'block'; 
+        zoomControl.style.display = isPreview ? 'none' : 'flex'; 
+        
+        // 5. Режим карточки
+        const stage = document.querySelector('.stage'); 
+        if(t === 'instruction') { 
+            stage.classList.add('expanded-mode'); 
+        } else { 
+            stage.classList.remove('expanded-mode'); 
+        }
+        
+        if(!isPreview) drawGrid();
+    });
+}
         function togglePencil() { isPencil = !isPencil; document.getElementById('pencilBtn').classList.toggle('active', isPencil); document.querySelector('.viewport').classList.toggle('pencil-mode', isPencil); renderPaletteUI(); }
         function setSector(s) { currentSector = s; document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); if(s === 'all') document.getElementById('sec-all').classList.add('active'); else document.querySelector(`.nav-${s}`).classList.add('active'); drawGrid(); }
         
