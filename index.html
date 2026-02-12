@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PhotoBrick v2.3.0</title>
+    <title>PhotoBrick v2.3.5</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
     <style>
@@ -1117,7 +1117,7 @@ min-width: 30px; /* Чтобы не сжималась слишком сильн
             </div>
             
             <div id="versionLabel" onclick="cycleLayoutMode()" style="text-align:center; font-size:10px; color:var(--text-sec); margin-top:20px; opacity:0.6; cursor:pointer; user-select:none;" title="Нажми для смены режима (Auto/Mobile/PC)">
-    PhotoBrick v2.3.0
+    PhotoBrick v2.3.5
 </div>
         </aside>
 
@@ -1240,14 +1240,19 @@ min-width: 30px; /* Чтобы не сжималась слишком сильн
         function activateHistoryTrap() { history.pushState({page: 1}, document.title, location.href); }
 
         window.onload = () => { 
-            document.getElementById('palettePreset').value = 'bw';
-            currentPalette = [...PRESETS['bw']]; 
-            aiBasePalette = [...PRESETS['bw']];
+    document.getElementById('palettePreset').value = 'bw';
+    currentPalette = [...PRESETS['bw']]; 
+    aiBasePalette = [...PRESETS['bw']];
 
-            renderPaletteUI(); setupEvents(); setupTouchGestures(); setupGridGestures(); setupMouseGestures(); setupDragDrop(); 
-            document.getElementById('colorCountGroup').style.display = 'none'; 
-            document.getElementById('refreshPaletteBtn').style.display = 'flex';
-        };
+    renderPaletteUI(); setupEvents(); setupTouchGestures(); setupGridGestures(); setupMouseGestures(); setupDragDrop(); 
+    
+    // --- ДОБАВЛЕННАЯ СТРОКА: ---
+    setupGridMouseNavigation(); 
+    // ---------------------------
+
+    document.getElementById('colorCountGroup').style.display = 'none'; 
+    document.getElementById('refreshPaletteBtn').style.display = 'flex';
+};
 
         function showInstruction() { document.getElementById('instructionModal').style.display = 'flex'; }
         function closeInstruction(e) { if(e.target.id === 'instructionModal') document.getElementById('instructionModal').style.display = 'none'; }
@@ -2487,34 +2492,40 @@ function runTransition(callback) {
         function togglePencil() { isPencil = !isPencil; document.getElementById('pencilBtn').classList.toggle('active', isPencil); document.querySelector('.viewport').classList.toggle('pencil-mode', isPencil); renderPaletteUI(); }
         function setSector(s) { currentSector = s; document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active')); if(s === 'all') document.getElementById('sec-all').classList.add('active'); else document.querySelector(`.nav-${s}`).classList.add('active'); drawGrid(); }
         
-        function drawGrid(targetContainer = null, printMode = false) {
-            const container = targetContainer || document.getElementById('gridContainer'); 
-            if(!printMode) container.innerHTML = ''; 
-            if(finalMatrix.length === 0) return;
+        /* === ВСТАВИТЬ ВМЕСТО СТАРОЙ function drawGrid === */
 
-            const fullH = finalMatrix.length; 
-            const fullW = finalMatrix[0].length; 
-            let sX = 0, eX = fullW, sY = 0, eY = fullH; 
-            const midX = Math.ceil(fullW / 2); 
-            const midY = Math.ceil(fullH / 2);
 
-            if(currentSector === 1) { eX = midX; eY = midY; } 
-            else if(currentSector === 2) { sX = midX; eY = midY; } 
-            else if(currentSector === 3) { eX = midX; sY = midY; } 
-            else if(currentSector === 4) { sX = midX; sY = midY; }
 
-            // ЗАПОМИНАЕМ ГРАНИЦЫ
-            currentGridBounds = { sX, eX, sY, eY };
+function drawGrid(targetContainer = null, printMode = false) {
+    const container = targetContainer || document.getElementById('gridContainer'); 
+    if(!printMode) container.innerHTML = ''; 
+    if(finalMatrix.length === 0) return;
 
-            renderSingleGrid(container, sX, eX, sY, eY, printMode);
-            
-            if(document.body.classList.contains('fullscreen-mode')) { refreshGridVisibility(); }
-            
-            if(!printMode) { 
-                const grid = container.querySelector('.instruction-grid'); 
-                if(grid) grid.style.transform = `scale(${document.getElementById('gridZoom').value / 100})`; 
-            }
-        }
+    const fullH = finalMatrix.length; 
+    const fullW = finalMatrix[0].length; 
+    let sX = 0, eX = fullW, sY = 0, eY = fullH; 
+    const midX = Math.ceil(fullW / 2); 
+    const midY = Math.ceil(fullH / 2);
+
+    if(currentSector === 1) { eX = midX; eY = midY; } 
+    else if(currentSector === 2) { sX = midX; eY = midY; } 
+    else if(currentSector === 3) { eX = midX; sY = midY; } 
+    else if(currentSector === 4) { sX = midX; sY = midY; }
+
+    // 1. ЗАПОМИНАЕМ ГРАНИЦЫ
+    currentGridBounds = { sX, eX, sY, eY };
+
+    // 2. Рисуем сетку (эта функция у тебя есть, мы её не трогаем)
+    renderSingleGrid(container, sX, eX, sY, eY, printMode);
+    
+    // 3. Вызываем затемнение ВСЕГДА (без проверок на фулскрин)
+    refreshGridVisibility();
+    
+    if(!printMode) { 
+        const grid = container.querySelector('.instruction-grid'); 
+        if(grid) grid.style.transform = `scale(${document.getElementById('gridZoom').value / 100})`; 
+    }
+}
 
         function renderSingleGrid(container, sX, eX, sY, eY, isPrint) {
             const visW = eX - sX; 
@@ -2623,111 +2634,116 @@ function runTransition(callback) {
         
         /* --- НОВАЯ СИСТЕМА УМНОГО ВЫДЕЛЕНИЯ ПО СЕКТОРАМ --- */
 
-        function toggleRowVisibility(y) {
-            if (!document.body.classList.contains('fullscreen-mode')) return; 
-            
-            // Формируем уникальный ключ для ЭТОГО участка (строка Y, от X1 до X2)
-            const key = `row_${y}_${currentGridBounds.sX}_${currentGridBounds.eX}`;
-            
-            if (hiddenRegions.has(key)) {
-                hiddenRegions.delete(key);
-            } else {
-                hiddenRegions.add(key);
-            }
-            refreshGridVisibility();
-        }
+        /* --- ИСПРАВЛЕННАЯ СИСТЕМА СИНХРОНИЗАЦИИ ВЫДЕЛЕНИЙ --- */
 
-        function toggleColVisibility(x) {
-            if (!document.body.classList.contains('fullscreen-mode')) return; 
-            
-            const key = `col_${x}_${currentGridBounds.sY}_${currentGridBounds.eY}`;
-            
-            if (hiddenRegions.has(key)) {
-                hiddenRegions.delete(key);
-            } else {
-                hiddenRegions.add(key);
-            }
-            refreshGridVisibility();
-        }
+/* --- ИСПРАВЛЕННАЯ СИСТЕМА СИНХРОНИЗАЦИИ (СЕГМЕНТНОЕ ВЫДЕЛЕНИЕ) --- */
 
-        function refreshGridVisibility() {
-            const grid = document.querySelector('.instruction-grid'); 
-            if(!grid) return; 
-            if (!document.body.classList.contains('fullscreen-mode')) return;
+function toggleRowVisibility(y) {
+    // 1. Берем текущие границы просмотра (какой сейчас сектор или вся схема)
+    const { sX, eX } = currentGridBounds;
+    
+    // 2. Формируем УНИКАЛЬНЫЙ ключ для этого сегмента
+    // Было: "row_5" (глупо, красит всё)
+    // Стало: "row_5_0_25" (умно, красит только этот кусок)
+    const key = `row_${y}_${sX}_${eX}`;
 
-            // Удаляем старые затемнения
-            document.querySelectorAll('.shade-layer').forEach(e => e.remove()); 
+    if (hiddenRegions.has(key)) hiddenRegions.delete(key);
+    else hiddenRegions.add(key);
+    
+    refreshGridVisibility(); 
+}
 
-            const CELL_SIZE = 20;
-            const HEADER_SIZE = 25;
+function toggleColVisibility(x) {
+    const { sY, eY } = currentGridBounds;
+    // То же самое для колонок: привязываем к высоте текущего сектора
+    const key = `col_${x}_${sY}_${eY}`;
 
-            // Перебираем все сохраненные зоны затемнения
-            hiddenRegions.forEach(key => {
-                const parts = key.split('_');
-                const type = parts[0];
-                const index = parseInt(parts[1]);
-                const start = parseInt(parts[2]);
-                const end = parseInt(parts[3]);
+    if (hiddenRegions.has(key)) hiddenRegions.delete(key);
+    else hiddenRegions.add(key);
+    
+    refreshGridVisibility(); 
+}
 
-                if (type === 'row') {
-                    // Проверяем: попадает ли закрашенная строка в текущий экран по высоте?
-                    if (index >= currentGridBounds.sY && index < currentGridBounds.eY) {
-                        // Математика пересечения отрезков (Сложная часть: вычисляем видимую часть закраски)
-                        const drawStart = Math.max(start, currentGridBounds.sX);
-                        const drawEnd = Math.min(end, currentGridBounds.eX);
+function refreshGridVisibility() {
+    const grid = document.querySelector('.instruction-grid'); 
+    if(!grid) return; 
 
-                        if (drawStart < drawEnd) {
-                            // Если есть пересечение — рисуем
-                            const shade = document.createElement('div');
-                            shade.className = 'shade-layer';
-                            // Позиция Y относительно текущего вида
-                            const relativeY = index - currentGridBounds.sY;
-                            shade.style.top = `${HEADER_SIZE + (relativeY * CELL_SIZE)}px`;
-                            shade.style.height = `${CELL_SIZE}px`;
-                            
-                            // Позиция X и ширина
-                            const relativeX = drawStart - currentGridBounds.sX;
-                            const widthCells = drawEnd - drawStart;
-                            
-                            shade.style.left = `${HEADER_SIZE + (relativeX * CELL_SIZE)}px`;
-                            shade.style.width = `${widthCells * CELL_SIZE}px`;
-                            
-                            grid.appendChild(shade);
-                        }
-                    }
-                } 
-                else if (type === 'col') {
-                    // Аналогично для колонок
-                    if (index >= currentGridBounds.sX && index < currentGridBounds.eX) {
-                        const drawStart = Math.max(start, currentGridBounds.sY);
-                        const drawEnd = Math.min(end, currentGridBounds.eY);
+    // Удаляем старые слои затемнения
+    grid.querySelectorAll('.shade-layer').forEach(e => e.remove()); 
 
-                        if (drawStart < drawEnd) {
-                            const shade = document.createElement('div');
-                            shade.className = 'shade-layer';
-                            
-                            const relativeX = index - currentGridBounds.sX;
-                            shade.style.left = `${HEADER_SIZE + (relativeX * CELL_SIZE)}px`;
-                            shade.style.width = `${CELL_SIZE}px`;
-                            
-                            const relativeY = drawStart - currentGridBounds.sY;
-                            const heightCells = drawEnd - drawStart;
-                            
-                            shade.style.top = `${HEADER_SIZE + (relativeY * CELL_SIZE)}px`;
-                            shade.style.height = `${heightCells * CELL_SIZE}px`;
-                            
-                            grid.appendChild(shade);
-                        }
-                    }
+    const CELL_SIZE = 20; // Размер клетки (для печати может отличаться, но тут экран)
+    const HEADER_SIZE = 25; // Размер линейки с цифрами
+
+    // Текущие видимые границы (viewport схемы)
+    const view = currentGridBounds; // { sX, eX, sY, eY }
+
+    hiddenRegions.forEach(key => {
+        const parts = key.split('_');
+        const type = parts[0];
+        const index = parseInt(parts[1]);
+        const start = parseInt(parts[2]); // Начало сохраненного куска
+        const end = parseInt(parts[3]);   // Конец сохраненного куска
+
+        // ЛОГИКА СИНХРОНИЗАЦИИ:
+        // Мы проверяем, пересекается ли сохраненный кусок (start-end) 
+        // с тем, что мы сейчас видим на экране (view.sX - view.eX)
+
+        if (type === 'row') {
+            // Проверяем, виден ли этот ряд по вертикали
+            if (index >= view.sY && index < view.eY) {
+                
+                // Вычисляем пересечение по горизонтали
+                // (Например: сохранено 0-25, смотрим 0-50 -> рисуем 0-25)
+                // (Например: сохранено 0-25, смотрим 25-50 -> пересечения нет, не рисуем)
+                const drawStart = Math.max(view.sX, start);
+                const drawEnd = Math.min(view.eX, end);
+
+                if (drawEnd > drawStart) {
+                    const shade = document.createElement('div');
+                    shade.className = 'shade-layer';
+                    
+                    const relativeY = index - view.sY;
+                    const relativeX = drawStart - view.sX; // Сдвиг внутри текущего вида
+                    const widthCells = drawEnd - drawStart;
+
+                    shade.style.top = `${HEADER_SIZE + (relativeY * CELL_SIZE)}px`;
+                    shade.style.height = `${CELL_SIZE}px`;
+                    
+                    shade.style.left = `${HEADER_SIZE + (relativeX * CELL_SIZE)}px`;
+                    shade.style.width = `${widthCells * CELL_SIZE}px`; 
+                    
+                    grid.appendChild(shade);
                 }
-            });
-        }
+            }
+        } 
+        else if (type === 'col') {
+            // Проверяем, видна ли эта колонка по горизонтали
+            if (index >= view.sX && index < view.eX) {
+                
+                // Вычисляем пересечение по вертикали
+                const drawStart = Math.max(view.sY, start);
+                const drawEnd = Math.min(view.eY, end);
 
-        function resetGridVisibility() { 
-            hiddenRegions.clear(); 
-            refreshGridVisibility(); 
+                if (drawEnd > drawStart) {
+                    const shade = document.createElement('div');
+                    shade.className = 'shade-layer';
+                    
+                    const relativeX = index - view.sX;
+                    const relativeY = drawStart - view.sY;
+                    const heightCells = drawEnd - drawStart;
+
+                    shade.style.left = `${HEADER_SIZE + (relativeX * CELL_SIZE)}px`;
+                    shade.style.width = `${CELL_SIZE}px`;
+                    
+                    shade.style.top = `${HEADER_SIZE + (relativeY * CELL_SIZE)}px`;
+                    shade.style.height = `${heightCells * CELL_SIZE}px`; 
+                    
+                    grid.appendChild(shade);
+                }
+            }
         }
-        
+    });
+}
         // --- ОБНОВЛЕННАЯ СИСТЕМА ПЕЧАТИ (FIX CYRILLIC) ---
         
         async function preparePrint() {
@@ -3679,19 +3695,19 @@ function cycleLayoutMode() {
     if (layoutModeState === 0) {
         // АВТО (Возвращаем как было)
         targetRule.conditionText = ORIGINAL_MEDIA_QUERY;
-        label.innerText = "PhotoBrick v2.3.0";
+        label.innerText = "PhotoBrick v2.3.5";
         label.style.color = "var(--text-sec)";
     } 
     else if (layoutModeState === 1) {
         // ПРИНУДИТЕЛЬНО МОБИЛЬНЫЙ (условие "all" срабатывает всегда)
         targetRule.conditionText = "all";
-        label.innerText = "PhotoBrick v2.3.0 (Mobile)";
+        label.innerText = "PhotoBrick v2.3.5 (Mobile)";
         label.style.color = "var(--primary)"; // Подсветим желтым/синим
     } 
     else if (layoutModeState === 2) {
         // ПРИНУДИТЕЛЬНО ПК (условие "max-width: 0px" никогда не сработает)
         targetRule.conditionText = "max-width: 0px";
-        label.innerText = "PhotoBrick v2.3.0 (PC)";
+        label.innerText = "PhotoBrick v2.3.5 (PC)";
         label.style.color = "var(--primary)";
     }
 }
@@ -3748,6 +3764,90 @@ function applyPixelArtFilter(data, width, height) {
             }
         }
     }
+}
+// --- ФУНКЦИЯ УПРАВЛЕНИЯ МЫШЬЮ В СХЕМЕ (PC) ---
+function setupGridMouseNavigation() {
+    const el = document.getElementById('instructionView');
+    
+    // 1. ЗУМ КОЛЕСИКОМ
+    el.addEventListener('wheel', (e) => {
+        // Блокируем стандартную прокрутку страницы
+        e.preventDefault();
+
+        // Определяем направление (вверх/вниз)
+        const delta = Math.sign(e.deltaY) * -10; 
+        
+        // Берем текущий зум
+        let currentZoom = parseInt(document.getElementById('gridZoom').value) || 100;
+        let newZoom = currentZoom + delta;
+
+        // Ограничиваем (как в ползунке: от 3 до 800)
+        newZoom = Math.max(3, Math.min(800, newZoom));
+
+        // Применяем зум
+        updateGridScale(newZoom);
+    }, { passive: false });
+
+    // 2. ПЕРЕТАСКИВАНИЕ (LMB)
+    let isDown = false;
+    let startX, startY, scrollLeft, scrollTop;
+
+    el.addEventListener('mousedown', (e) => {
+        // Работаем только по левой кнопке мыши
+        if(e.button !== 0) return; 
+        
+        isDown = true;
+        el.style.cursor = 'grabbing'; // Меняем курсор на "руку"
+        
+        // Запоминаем начальные координаты
+        startX = e.pageX - el.offsetLeft;
+        startY = e.pageY - el.offsetTop;
+        scrollLeft = el.scrollLeft;
+        scrollTop = el.scrollTop;
+    });
+
+    el.addEventListener('mouseleave', () => {
+        isDown = false;
+        el.style.cursor = 'default';
+    });
+
+    el.addEventListener('mouseup', () => {
+        isDown = false;
+        el.style.cursor = 'default'; // Возвращаем обычный курсор
+    });
+
+    el.addEventListener('mousemove', (e) => {
+        if (!isDown) return; // Если кнопка не нажата, ничего не делаем
+        e.preventDefault();
+        
+        // Вычисляем, насколько сдвинулась мышь
+        const x = e.pageX - el.offsetLeft;
+        const y = e.pageY - el.offsetTop;
+        const walkX = (x - startX); 
+        const walkY = (y - startY);
+        
+        // Крутим скролл контейнера
+        el.scrollLeft = scrollLeft - walkX;
+        el.scrollTop = scrollTop - walkY;
+    });
+}
+
+/* --- ИСПРАВЛЕНИЕ: ПРАВИЛЬНОЕ ИМЯ ФУНКЦИИ --- */
+
+// ВАЖНО: Имя функции теперь resetGridVisibility, как прописано у вас в кнопке HTML
+function resetGridVisibility() {
+    if (typeof hiddenRegions !== 'undefined') {
+        hiddenRegions.clear(); // Очищаем память выделений
+        refreshGridVisibility(); // Перерисовываем сетку чистой
+        console.log("Схема очищена (resetGridVisibility)");
+    }
+}
+
+// Этот кусок ниже можно оставить или удалить, он теперь не критичен, 
+// так как кнопка сработает через onclick="resetGridVisibility()" в HTML
+const eyeButton = document.getElementById('reset-lines-btn'); 
+if (eyeButton) {
+    eyeButton.onclick = resetGridVisibility;
 }
     </script>
 <div id="loadingOverlay" class="loading-overlay">
