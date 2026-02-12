@@ -8,8 +8,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" href="icon.png">
 
-<meta name="theme-color" content="#1e1e24" media="(prefers-color-scheme: dark)">
-<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1e1e24">
 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -1264,6 +1263,7 @@ min-width: 30px; /* Чтобы не сжималась слишком сильн
 
     document.getElementById('colorCountGroup').style.display = 'none'; 
     document.getElementById('refreshPaletteBtn').style.display = 'flex';
+updateBrowserColor();
 };
 
         function showInstruction() { document.getElementById('instructionModal').style.display = 'flex'; }
@@ -2171,7 +2171,13 @@ if (preset === 'pixelart') {
             }); 
         }
         function hexToRgb(hex) { const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex); return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : {r:0,g:0,b:0}; }
-        function toggleTheme() { const b = document.body; b.setAttribute('data-theme', b.getAttribute('data-theme')==='light'?'dark':'light'); }
+        function toggleTheme() { 
+    const b = document.body; 
+    b.setAttribute('data-theme', b.getAttribute('data-theme')==='light'?'dark':'light');
+    
+    // Вызываем покраску браузера
+    updateBrowserColor();
+}
         function saveProject() { if(!sourceImage) return; 
 const data = { palette: currentPalette, stockAssists: stockAssists, aiBase: aiBasePalette, hiddenRegions: Array.from(hiddenRegions), settings: { zoom: document.getElementById('zoom').value, contrast: document.getElementById('contrast').value, brightness: document.getElementById('brightness').value, panX: document.getElementById('panX').value, panY: document.getElementById('panY').value, size: document.getElementById('setSize').value, cW: document.getElementById('customWidth').value, cH: document.getElementById('customHeight').value, cc: document.getElementById('colorCount').value, preset: document.getElementById('palettePreset').value, sharpness: document.getElementById('sharpness').value, smartBlur: document.getElementById('smartBlur').value, posterize: document.getElementById('posterize').value, usmRadius: document.getElementById('usmRadius').value }, img: sourceImage.src }; let name = prompt("Введите имя файла:", "photobrick_project"); if (name === null) return; if (!name) name = "photobrick_project"; if (!name.endsWith(".json")) name += ".json"; const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'})); a.download = name; a.click(); }
 
@@ -3870,6 +3876,21 @@ if ('serviceWorker' in navigator) {
             .catch(err => console.log('PWA Service Worker failed', err));
     });
 }
+// --- ФУНКЦИЯ ДЛЯ ОКРАШИВАНИЯ БРАУЗЕРА ---
+function updateBrowserColor() {
+    // 1. Ждем 1 кадр, чтобы CSS успел переключиться
+    requestAnimationFrame(() => {
+        // 2. Узнаем реальный цвет фона body
+        const color = getComputedStyle(document.body).backgroundColor;
+        
+        // 3. Красим мета-тег
+        const meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) {
+            meta.setAttribute('content', color);
+        }
+    });
+}
+
     </script>
 <div id="loadingOverlay" class="loading-overlay">
         <div class="loading-content">
