@@ -1,0 +1,21 @@
+{
+  "name": "PhotoBrick",
+  "short_name": "PhotoBrick",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#1e1e24",
+  "theme_color": "#ffd700",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
