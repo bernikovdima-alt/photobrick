@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PhotoBrick v2.3.5</title>
+    <title>PhotoBrick v2.3.6</title>
 
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" href="icon.png">
@@ -1147,7 +1147,7 @@ min-width: 30px; /* Чтобы не сжималась слишком сильн
             </div>
             
             <div id="versionLabel" onclick="cycleLayoutMode()" style="text-align:center; font-size:10px; color:var(--text-sec); margin-top:20px; opacity:0.6; cursor:pointer; user-select:none;" title="Нажми для смены режима (Auto/Mobile/PC)">
-    PhotoBrick v2.3.5
+    PhotoBrick v2.3.6
 </div>
         </aside>
 
@@ -3781,13 +3781,13 @@ function cycleLayoutMode() {
     if (layoutModeState === 0) {
         // АВТО (Возвращаем как было)
         targetRule.conditionText = ORIGINAL_MEDIA_QUERY;
-        label.innerText = "PhotoBrick v2.3.5";
+        label.innerText = "PhotoBrick v2.3.6";
         label.style.color = "var(--text-sec)";
     } 
     else if (layoutModeState === 1) {
         // ПРИНУДИТЕЛЬНО МОБИЛЬНЫЙ (условие "all" срабатывает всегда)
         targetRule.conditionText = "all";
-        label.innerText = "PhotoBrick v2.3.5 (Mobile)";
+        label.innerText = "PhotoBrick v2.3.6 (Mobile)";
         label.style.color = "var(--primary)"; // Подсветим желтым/синим
     } 
     else if (layoutModeState === 2) {
@@ -3968,3 +3968,4 @@ function updateBrowserColor() {
     </div>
 </body>
 </html>
+
