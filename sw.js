@@ -1,28 +1,70 @@
-const CACHE_NAME = 'photobrick-v2.3.7';
-const ASSETS = [
-  './',
-  './index.html',
-  './manifest.json',
-  './icon.png',
-  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js'
+// --- КОНФИГУРАЦИЯ ---
+
+// ВАЖНО: Каждый раз, когда вы обновляете код сайта (HTML, CSS, JS),
+// меняйте эту строку! Например: 'app-v2', 'app-v3' и т.д.
+// Браузер увидит изменение в этом байте и поймет, что нужно обновиться.
+const CACHE_NAME = 'app-v2-fix-zoom'; 
+
+// Список файлов, которые нужно закешировать сразу
+const ASSETS_TO_CACHE = [
+    './',
+    './index.html',
+    './style.css',
+    './script.js',
+    // Добавьте сюда иконки или другие файлы, если есть:
+    // './manifest.json',
+    // './icon-192.png'
 ];
 
-// Установка сервис-воркера и кеширование файлов
-self.addEventListener('install', (e) => {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
-  );
+// --- 1. УСТАНОВКА (INSTALL) ---
+self.addEventListener('install', (event) => {
+    // [МЕТОД 3 - Часть 1]
+    // Эта команда говорит браузеру: "Не жди, пока пользователь закроет все вкладки.
+    // Активируй этот Service Worker прямо сейчас!"
+    self.skipWaiting();
+
+    event.waitUntil(
+        caches.open(CACHE_NAME)
+            .then((cache) => {
+                console.log('[SW] Кэширование файлов');
+                return cache.addAll(ASSETS_TO_CACHE);
+            })
+    );
 });
 
-// Работа офлайн: отдаем файлы из кеша, если нет интернета
-self.addEventListener('fetch', (e) => {
-  e.respondWith(
-    caches.match(e.request).then((response) => response || fetch(e.request))
-  );
+// --- 2. АКТИВАЦИЯ (ACTIVATE) ---
+self.addEventListener('activate', (event) => {
+    // [МЕТОД 3 - Часть 2]
+    // Эта команда говорит: "Начни контролировать все открытые вкладки немедленно".
+    // Без этого пользователь увидел бы обновление только после перезагрузки страницы.
+    event.waitUntil(self.clients.claim());
 
+    // Удаляем старые кэши, чтобы не занимать место и не отдавать старье
+    event.waitUntil(
+        caches.keys().then((cacheNames) => {
+            return Promise.all(
+                cacheNames.map((key) => {
+                    if (key !== CACHE_NAME) {
+                        console.log('[SW] Удаление старого кэша:', key);
+                        return caches.delete(key);
+                    }
+                })
+            );
+        })
+    );
 });
 
-
-
-
+// --- 3. ПЕРЕХВАТ ЗАПРОСОВ (FETCH) ---
+self.addEventListener('fetch', (event) => {
+    event.respondWith(
+        caches.match(event.request)
+            .then((response) => {
+                // Если файл есть в кэше — отдаем его
+                if (response) {
+                    return response;
+                }
+                // Если нет — качаем из сети
+                return fetch(event.request);
+            })
+    );
+});
