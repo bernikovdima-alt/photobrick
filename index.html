@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PhotoBrick v2.3.6</title>
+    <title>PhotoBrick v2.3.7</title>
 
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" href="icon.png">
@@ -258,6 +258,8 @@
     /* --- ВАЖНЫЕ ИЗМЕНЕНИЯ --- */
     touch-action: pan-x pan-y;   /* Разрешаем ТОЛЬКО прокрутку, запрещаем зум браузера */
     overscroll-behavior: none;   /* Убираем "резинку" и проскакивание зума */
+/* Важно для предотвращения зума всей страницы в старых версиях */
+    text-size-adjust: 100%;
     -webkit-overflow-scrolling: touch; 
 }
 
@@ -1147,7 +1149,7 @@ min-width: 30px; /* Чтобы не сжималась слишком сильн
             </div>
             
             <div id="versionLabel" onclick="cycleLayoutMode()" style="text-align:center; font-size:10px; color:var(--text-sec); margin-top:20px; opacity:0.6; cursor:pointer; user-select:none;" title="Нажми для смены режима (Auto/Mobile/PC)">
-    PhotoBrick v2.3.6
+    PhotoBrick v2.3.7
 </div>
         </aside>
 
@@ -1705,51 +1707,54 @@ function setupMouseGestures() {
     const el = document.getElementById('instructionView'); 
     let startDist = 0, startZoom = 100; 
 
-    // 1. Начало касания
+    // Хелпер для получения расстояния
+    const getDist = (touches) => {
+        return Math.hypot(
+            touches[0].clientX - touches[1].clientX, 
+            touches[0].clientY - touches[1].clientY
+        );
+    };
+
+    // 1. TOUCH START - Перехватываем
     el.addEventListener('touchstart', (e) => { 
         if (e.touches.length === 2) { 
-            // КРИТИЧНО: Если 2 пальца, сразу убиваем стандартное поведение
-            if (e.cancelable) e.preventDefault(); 
-            
-            // Считаем начальную дистанцию
-            startDist = Math.hypot(
-                e.touches[0].clientX - e.touches[1].clientX, 
-                e.touches[0].clientY - e.touches[1].clientY
-            );
-            
-            // Запоминаем текущий зум из ползунка
+            // !!! ГЛАВНОЕ ИЗМЕНЕНИЕ:
+            // Останавливаем всплытие, чтобы браузер не увидел этот жест
+            e.preventDefault(); 
+            e.stopImmediatePropagation();
+
+            startDist = getDist(e.touches);
             startZoom = parseInt(document.getElementById('gridZoom').value) || 100;
         } 
-    }, {passive: false}); // passive: false ОБЯЗАТЕЛЬНО
+    }, { passive: false, capture: true }); // capture: true - перехват на входе!
 
-    // 2. Движение
+    // 2. TOUCH MOVE - Перехватываем и зумим
     el.addEventListener('touchmove', (e) => { 
         if (e.touches.length === 2) { 
-            // КРИТИЧНО: Блокируем зум интерфейса Chrome
-            if (e.cancelable) e.preventDefault(); 
-            
-            // Если дистанция слишком мала, не дергаемся
+            // Убиваем зум интерфейса Хрома
+            e.preventDefault(); 
+            e.stopImmediatePropagation();
+
+            // Защита от деления на ноль и дрожания
             if (startDist < 10) return;
 
-            const dist = Math.hypot(
-                e.touches[0].clientX - e.touches[1].clientX, 
-                e.touches[0].clientY - e.touches[1].clientY
-            ); 
+            const dist = getDist(e.touches); 
             
-            // Считаем новый зум
+            // Расчет зума
             let newZoom = startZoom * (dist / startDist);
-            
-            // Ограничиваем (как в ползунке)
             newZoom = Math.max(3, Math.min(800, newZoom));
 
             updateGridScale(newZoom); 
         } 
-    }, {passive: false}); 
+    }, { passive: false, capture: true }); // capture: true - перехват на входе!
     
-    // 3. (Опционально) Хак для старых Safari, чтобы не мешал
-    el.addEventListener('gesturestart', function(e) {
-        e.preventDefault();
-    });
+    // 3. Блокируем "фантомные" жесты, которые Chrome может интерпретировать как зум страницы
+    // Добавляем слушатель на сам документ, но ограничиваем проверкой цели
+    document.addEventListener('touchmove', (e) => {
+        if (e.touches.length > 1 && el.contains(e.target)) {
+            e.preventDefault();
+        }
+    }, { passive: false });
 }
         function resetSlider(id, defVal) { if(document.getElementById('group-'+id).classList.contains('locked')) return; document.getElementById(id).value = defVal; let suffix = '%'; if(id === 'smartBlur' || id === 'posterize') suffix = ''; document.getElementById(id+'Val').innerText = defVal + suffix; if(sourceImage) processImage(); }
         function toggleFullscreen() { 
@@ -3781,19 +3786,19 @@ function cycleLayoutMode() {
     if (layoutModeState === 0) {
         // АВТО (Возвращаем как было)
         targetRule.conditionText = ORIGINAL_MEDIA_QUERY;
-        label.innerText = "PhotoBrick v2.3.6";
+        label.innerText = "PhotoBrick v2.3.7";
         label.style.color = "var(--text-sec)";
     } 
     else if (layoutModeState === 1) {
         // ПРИНУДИТЕЛЬНО МОБИЛЬНЫЙ (условие "all" срабатывает всегда)
         targetRule.conditionText = "all";
-        label.innerText = "PhotoBrick v2.3.6 (Mobile)";
+        label.innerText = "PhotoBrick v2.3.7 (Mobile)";
         label.style.color = "var(--primary)"; // Подсветим желтым/синим
     } 
     else if (layoutModeState === 2) {
         // ПРИНУДИТЕЛЬНО ПК (условие "max-width: 0px" никогда не сработает)
         targetRule.conditionText = "max-width: 0px";
-        label.innerText = "PhotoBrick v2.3.6 (PC)";
+        label.innerText = "PhotoBrick v2.3.7 (PC)";
         label.style.color = "var(--primary)";
     }
 }
@@ -3968,5 +3973,4 @@ function updateBrowserColor() {
     </div>
 </body>
 </html>
-
 
