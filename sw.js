@@ -1,4 +1,4 @@
-const CACHE_NAME = 'photobrick-v2.0';
+const CACHE_NAME = 'photobrick-v2.3.7';
 const ASSETS = [
   './',
   './index.html',
@@ -22,6 +22,7 @@ self.addEventListener('fetch', (e) => {
   );
 
 });
+
 
 
 
