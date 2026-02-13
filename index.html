@@ -246,7 +246,26 @@
         .viewport:active { cursor: grabbing; }
         .viewport.pencil-mode { cursor: crosshair !important; }
         
-        #instructionView { display: none; flex: 1; width: 100%; overflow: auto; padding: 20px; text-align: center; position: relative; touch-action: pan-x pan-y; -webkit-overflow-scrolling: touch; }
+       #instructionView { 
+    display: none; 
+    flex: 1; 
+    width: 100%; 
+    overflow: auto; 
+    padding: 20px; 
+    text-align: center; 
+    position: relative; 
+    
+    /* --- ВАЖНЫЕ ИЗМЕНЕНИЯ --- */
+    touch-action: pan-x pan-y;   /* Разрешаем ТОЛЬКО прокрутку, запрещаем зум браузера */
+    overscroll-behavior: none;   /* Убираем "резинку" и проскакивание зума */
+    -webkit-overflow-scrolling: touch; 
+}
+
+/* Добавьте это правило, если его нет */
+.instruction-grid {
+    /* Это гарантирует, что касание самой сетки не вызовет зум интерфейса */
+    touch-action: pan-x pan-y; 
+}
         #gridContainer { display: inline-block; text-align: left; padding-bottom: 50px; transform-origin: top left; }
         
         .instruction-grid { 
@@ -1682,7 +1701,56 @@ function setupMouseGestures() {
         if(!isPencil) el.style.cursor = 'grab'; 
     }); 
 }
-        function setupGridGestures() { const el = document.getElementById('instructionView'); let startDist = 0, startZoom = 100; el.addEventListener('touchstart', (e) => { if (e.touches.length === 2) { e.preventDefault(); startDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); startZoom = parseInt(document.getElementById('gridZoom').value); } }, {passive: false}); el.addEventListener('touchmove', (e) => { if (e.touches.length === 2) { e.preventDefault(); const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); updateGridScale(startZoom * (dist/startDist)); } }, {passive: false}); }
+        function setupGridGestures() { 
+    const el = document.getElementById('instructionView'); 
+    let startDist = 0, startZoom = 100; 
+
+    // 1. Начало касания
+    el.addEventListener('touchstart', (e) => { 
+        if (e.touches.length === 2) { 
+            // КРИТИЧНО: Если 2 пальца, сразу убиваем стандартное поведение
+            if (e.cancelable) e.preventDefault(); 
+            
+            // Считаем начальную дистанцию
+            startDist = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX, 
+                e.touches[0].clientY - e.touches[1].clientY
+            );
+            
+            // Запоминаем текущий зум из ползунка
+            startZoom = parseInt(document.getElementById('gridZoom').value) || 100;
+        } 
+    }, {passive: false}); // passive: false ОБЯЗАТЕЛЬНО
+
+    // 2. Движение
+    el.addEventListener('touchmove', (e) => { 
+        if (e.touches.length === 2) { 
+            // КРИТИЧНО: Блокируем зум интерфейса Chrome
+            if (e.cancelable) e.preventDefault(); 
+            
+            // Если дистанция слишком мала, не дергаемся
+            if (startDist < 10) return;
+
+            const dist = Math.hypot(
+                e.touches[0].clientX - e.touches[1].clientX, 
+                e.touches[0].clientY - e.touches[1].clientY
+            ); 
+            
+            // Считаем новый зум
+            let newZoom = startZoom * (dist / startDist);
+            
+            // Ограничиваем (как в ползунке)
+            newZoom = Math.max(3, Math.min(800, newZoom));
+
+            updateGridScale(newZoom); 
+        } 
+    }, {passive: false}); 
+    
+    // 3. (Опционально) Хак для старых Safari, чтобы не мешал
+    el.addEventListener('gesturestart', function(e) {
+        e.preventDefault();
+    });
+}
         function resetSlider(id, defVal) { if(document.getElementById('group-'+id).classList.contains('locked')) return; document.getElementById(id).value = defVal; let suffix = '%'; if(id === 'smartBlur' || id === 'posterize') suffix = ''; document.getElementById(id+'Val').innerText = defVal + suffix; if(sourceImage) processImage(); }
         function toggleFullscreen() { 
     // Оборачиваем логику фулскрина в анимацию
