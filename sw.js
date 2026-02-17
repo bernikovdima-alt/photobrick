@@ -13,7 +13,7 @@ const ASSETS_TO_CACHE = [
     './script.js',
     // Добавьте сюда иконки или другие файлы, если есть:
     // './manifest.json',
-    // './icon-192.png'
+    './icon.png'
 ];
 
 // --- 1. УСТАНОВКА (INSTALL) ---
@@ -68,4 +68,5 @@ self.addEventListener('fetch', (event) => {
             })
     );
 });
+
 
