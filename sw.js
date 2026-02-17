@@ -3,7 +3,7 @@
 // ВАЖНО: Каждый раз, когда вы обновляете код сайта (HTML, CSS, JS),
 // меняйте эту строку! Например: 'app-v2', 'app-v3' и т.д.
 // Браузер увидит изменение в этом байте и поймет, что нужно обновиться.
-const CACHE_NAME = 'app-v2-fix-zoom'; 
+const CACHE_NAME = 'app-v3-fix-zoom'; 
 
 // Список файлов, которые нужно закешировать сразу
 const ASSETS_TO_CACHE = [
@@ -68,3 +68,4 @@ self.addEventListener('fetch', (event) => {
             })
     );
 });
+
