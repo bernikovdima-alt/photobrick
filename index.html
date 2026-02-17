@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PhotoBrick v2.3.7</title>
+    <title>PhotoBrick v2.4.0</title>
 
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" href="icon.png">
@@ -1131,6 +1131,10 @@ min-width: 30px; /* Чтобы не сжималась слишком сильн
                         <div class="slider-header-compact">Яркость <span class="val-display" id="brightnessVal">100%</span></div>
                         <div class="slider-row"><span class="icon-btn-side reset-btn" onclick="resetSlider('brightness', 100)">↺</span><input type="range" id="brightness" min="0" max="200" value="100"><span class="icon-btn-side lock-toggle" onclick="toggleLock('group-brightness', 'brightness')">🔓</span></div>
                     </div>
+					<div class="slider-group" id="group-saturation">
+                        <div class="slider-header-compact">Насыщенность <span class="val-display" id="saturationVal">100%</span></div>
+                        <div class="slider-row"><span class="icon-btn-side reset-btn" onclick="resetSlider('saturation', 100)">↺</span><input type="range" id="saturation" min="0" max="250" value="100"><span class="icon-btn-side lock-toggle" onclick="toggleLock('group-saturation', 'saturation')">🔓</span></div>
+                    </div>
                 </div>
             </div>
 
@@ -1149,7 +1153,7 @@ min-width: 30px; /* Чтобы не сжималась слишком сильн
             </div>
             
             <div id="versionLabel" onclick="cycleLayoutMode()" style="text-align:center; font-size:10px; color:var(--text-sec); margin-top:20px; opacity:0.6; cursor:pointer; user-select:none;" title="Нажми для смены режима (Auto/Mobile/PC)">
-    PhotoBrick v2.3.7
+    PhotoBrick v2.4.0
 </div>
         </aside>
 
@@ -1346,7 +1350,7 @@ document.getElementById('symbolSet').onchange = (e) => {
                     }
                 }
             };
-            ['zoom', 'contrast', 'brightness', 'panX', 'panY', 'smartBlur', 'sharpness', 'posterize'].forEach(id => { document.getElementById(id).oninput = (e) => { let suffix = '%'; if(id === 'smartBlur' || id === 'posterize') suffix = ''; document.getElementById(id+'Val').innerText = e.target.value + suffix; if(sourceImage) processImage(); }; });
+            ['zoom', 'contrast', 'brightness', 'saturation', 'panX', 'panY', 'smartBlur', 'sharpness', 'posterize'].forEach(id => { document.getElementById(id).oninput = (e) => { let suffix = '%'; if(id === 'smartBlur' || id === 'posterize') suffix = ''; document.getElementById(id+'Val').innerText = e.target.value + suffix; if(sourceImage) processImage(); }; });
             document.getElementById('palettePreset').onchange = (e) => { 
     pushHistory(); 
     const val = e.target.value; 
@@ -1789,7 +1793,7 @@ function setupMouseGestures() {
         function loadProject(e) { const file = e.target.files[0]; if(!file) return; if(file.type.match('image.*')) { alert("Ошибка: Вы пытаетесь загрузить картинку в меню проекта."); return; } const r = new FileReader(); r.onload = (ev) => processLoadedProject(ev.target.result); r.readAsText(file); }
 
         function processLoadedProject(jsonStr) {
-            try { const d = JSON.parse(jsonStr); currentPalette = d.palette; if(d.aiBase) aiBasePalette = d.aiBase; document.getElementById('zoom').value = d.settings.zoom; document.getElementById('zoomVal').innerText = d.settings.zoom + '%'; document.getElementById('contrast').value = d.settings.contrast; document.getElementById('contrastVal').innerText = d.settings.contrast + '%'; document.getElementById('brightness').value = d.settings.brightness || 100; document.getElementById('brightnessVal').innerText = (d.settings.brightness || 100) + '%'; document.getElementById('panX').value = d.settings.panX; document.getElementById('panY').value = d.settings.panY; document.getElementById('setSize').value = d.settings.size; if(d.settings.size === 'custom') document.getElementById('customSizeGroup').style.display = 'flex'; document.getElementById('customWidth').value = d.settings.cW || 50; document.getElementById('customHeight').value = d.settings.cH || 50; document.getElementById('colorCount').value = d.settings.cc || 5; document.getElementById('colorCountVal').innerText = d.settings.cc || 5; if(d.settings.sharpness) { document.getElementById('sharpness').value = d.settings.sharpness; document.getElementById('sharpnessVal').innerText = d.settings.sharpness + '%'; } if(d.settings.smartBlur) { 
+            try { const d = JSON.parse(jsonStr); currentPalette = d.palette; if(d.aiBase) aiBasePalette = d.aiBase; document.getElementById('zoom').value = d.settings.zoom; document.getElementById('zoomVal').innerText = d.settings.zoom + '%'; document.getElementById('contrast').value = d.settings.contrast; document.getElementById('contrastVal').innerText = d.settings.contrast + '%'; document.getElementById('brightness').value = d.settings.brightness || 100; document.getElementById('brightnessVal').innerText = (d.settings.brightness || 100) + '%'; document.getElementById('saturation').value = d.settings.saturation || 100; document.getElementById('saturationVal').innerText = (d.settings.saturation || 100) + '%'; document.getElementById('panX').value = d.settings.panX; document.getElementById('panY').value = d.settings.panY; document.getElementById('setSize').value = d.settings.size; if(d.settings.size === 'custom') document.getElementById('customSizeGroup').style.display = 'flex'; document.getElementById('customWidth').value = d.settings.cW || 50; document.getElementById('customHeight').value = d.settings.cH || 50; document.getElementById('colorCount').value = d.settings.cc || 5; document.getElementById('colorCountVal').innerText = d.settings.cc || 5; if(d.settings.sharpness) { document.getElementById('sharpness').value = d.settings.sharpness; document.getElementById('sharpnessVal').innerText = d.settings.sharpness + '%'; } if(d.settings.smartBlur) { 
     document.getElementById('smartBlur').value = d.settings.smartBlur; 
     document.getElementById('smartBlurVal').innerText = d.settings.smartBlur; 
 } 
@@ -2012,8 +2016,8 @@ if(d.hiddenRegions) {
             const workW = w * resolutionFactor; const workH = h * resolutionFactor; 
             const workCanvas = document.createElement('canvas'); workCanvas.width = workW; workCanvas.height = workH; const workCtx = workCanvas.getContext('2d', { willReadFrequently: true });
             
-            const zoom = document.getElementById('zoom').value / 100; const contrast = document.getElementById('contrast').value; const brightness = document.getElementById('brightness').value;
-            workCtx.filter = `contrast(${contrast}%) brightness(${brightness}%)`; const px = (document.getElementById('panX').value / 100) * workW; const py = (document.getElementById('panY').value / 100) * workH; 
+            const zoom = document.getElementById('zoom').value / 100; const contrast = document.getElementById('contrast').value; const brightness = document.getElementById('brightness').value; const saturation = document.getElementById('saturation').value;
+            workCtx.filter = `contrast(${contrast}%) brightness(${brightness}%) saturate(${saturation}%)`; const px = (document.getElementById('panX').value / 100) * workW; const py = (document.getElementById('panY').value / 100) * workH; 
             
             const imgAspect = sourceImage.width / sourceImage.height;
             const canvasAspect = workW / workH;
@@ -2252,7 +2256,7 @@ if (preset === 'pixelart') {
     updateBrowserColor();
 }
         function saveProject() { if(!sourceImage) return; 
-const data = { palette: currentPalette, stockAssists: stockAssists, aiBase: aiBasePalette, hiddenRegions: Array.from(hiddenRegions), settings: { zoom: document.getElementById('zoom').value, contrast: document.getElementById('contrast').value, brightness: document.getElementById('brightness').value, panX: document.getElementById('panX').value, panY: document.getElementById('panY').value, size: document.getElementById('setSize').value, cW: document.getElementById('customWidth').value, cH: document.getElementById('customHeight').value, cc: document.getElementById('colorCount').value, preset: document.getElementById('palettePreset').value, sharpness: document.getElementById('sharpness').value, smartBlur: document.getElementById('smartBlur').value, posterize: document.getElementById('posterize').value, usmRadius: document.getElementById('usmRadius').value }, img: sourceImage.src }; let name = prompt("Введите имя файла:", "photobrick_project"); if (name === null) return; if (!name) name = "photobrick_project"; if (!name.endsWith(".json")) name += ".json"; const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'})); a.download = name; a.click(); }
+const data = { palette: currentPalette, stockAssists: stockAssists, aiBase: aiBasePalette, hiddenRegions: Array.from(hiddenRegions), settings: { zoom: document.getElementById('zoom').value, contrast: document.getElementById('contrast').value, brightness: document.getElementById('brightness').value, saturation: document.getElementById('saturation').value, panX: document.getElementById('panX').value, panY: document.getElementById('panY').value, size: document.getElementById('setSize').value, cW: document.getElementById('customWidth').value, cH: document.getElementById('customHeight').value, cc: document.getElementById('colorCount').value, preset: document.getElementById('palettePreset').value, sharpness: document.getElementById('sharpness').value, smartBlur: document.getElementById('smartBlur').value, posterize: document.getElementById('posterize').value, usmRadius: document.getElementById('usmRadius').value }, img: sourceImage.src }; let name = prompt("Введите имя файла:", "photobrick_project"); if (name === null) return; if (!name) name = "photobrick_project"; if (!name.endsWith(".json")) name += ".json"; const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'})); a.download = name; a.click(); }
 
         function resetStylesOnly() { 
             pushHistory(); 
@@ -2285,6 +2289,8 @@ const data = { palette: currentPalette, stockAssists: stockAssists, aiBase: aiBa
             document.getElementById('contrastVal').innerText = "100%"; 
             document.getElementById('brightness').value = 100; 
             document.getElementById('brightnessVal').innerText = "100%"; 
+			document.getElementById('saturation').value = 100; 
+            document.getElementById('saturationVal').innerText = "100%";
             
             document.getElementById('sharpness').value = 164; 
             document.getElementById('sharpnessVal').innerText = "164%"; 
@@ -3392,9 +3398,11 @@ headerRow.style.alignItems = 'center';
             }
 
             // Фильтры CSS (быстрые)
-            const contrast = document.getElementById('contrast').value;
-            const brightness = document.getElementById('brightness').value;
-            workCtx.filter = `contrast(${contrast}%) brightness(${brightness}%)`;
+            // Фильтры CSS (быстрые)
+const contrast = document.getElementById('contrast').value;
+const brightness = document.getElementById('brightness').value;
+const saturation = document.getElementById('saturation').value;
+workCtx.filter = `contrast(${contrast}%) brightness(${brightness}%) saturate(${saturation}%)`;
             
             workCtx.drawImage(sourceImage, (processW - drawW) / 2 + px, (processH - drawH) / 2 + py, drawW, drawH);
             workCtx.filter = 'none';
@@ -3786,19 +3794,19 @@ function cycleLayoutMode() {
     if (layoutModeState === 0) {
         // АВТО (Возвращаем как было)
         targetRule.conditionText = ORIGINAL_MEDIA_QUERY;
-        label.innerText = "PhotoBrick v2.3.7";
+        label.innerText = "PhotoBrick v2.4.0";
         label.style.color = "var(--text-sec)";
     } 
     else if (layoutModeState === 1) {
         // ПРИНУДИТЕЛЬНО МОБИЛЬНЫЙ (условие "all" срабатывает всегда)
         targetRule.conditionText = "all";
-        label.innerText = "PhotoBrick v2.3.7 (Mobile)";
+        label.innerText = "PhotoBrick v2.4.0 (Mobile)";
         label.style.color = "var(--primary)"; // Подсветим желтым/синим
     } 
     else if (layoutModeState === 2) {
         // ПРИНУДИТЕЛЬНО ПК (условие "max-width: 0px" никогда не сработает)
         targetRule.conditionText = "max-width: 0px";
-        label.innerText = "PhotoBrick v2.3.7 (PC)";
+        label.innerText = "PhotoBrick v2.4.0 (PC)";
         label.style.color = "var(--primary)";
     }
 }
@@ -3973,4 +3981,3 @@ function updateBrowserColor() {
     </div>
 </body>
 </html>
-
