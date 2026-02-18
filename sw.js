@@ -12,7 +12,7 @@ const ASSETS_TO_CACHE = [
     './style.css',
     './script.js',
     // Добавьте сюда иконки или другие файлы, если есть:
-    // './manifest.json',
+    './manifest.json',
     './icon.png'
 ];
 
@@ -68,6 +68,7 @@ self.addEventListener('fetch', (event) => {
             })
     );
 });
+
 
 
 
