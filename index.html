@@ -1023,6 +1023,14 @@ min-width: 30px; /* Чтобы не сжималась слишком сильн
         <input type="number" id="customWidth" class="modern-input" placeholder="W" min="10" value="50">
         <input type="number" id="customHeight" class="modern-input" placeholder="H" min="10" value="50">
     </div>
+    
+    <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--glass-border);">
+        <div class="slider-header-compact" style="justify-content: flex-start; gap: 5px;">
+            Размер блока (см)
+        </div>
+        <input type="number" id="blockSizeCm" class="modern-input" step="0.1" value="0.6" oninput="updateResultLabelOnly()">
+    </div>
+
 </div>
             </div>
 
@@ -1987,13 +1995,8 @@ if(d.hiddenRegions) {
             }
             finalMatrix = newMat; 
 
-            // Обновляем надпись с размером
-            const finalH = finalMatrix.length;
-            const finalW = finalMatrix.length > 0 ? finalMatrix[0].length : 0;
-            const label = document.getElementById('resultLabel');
-            if (label) {
-                label.innerText = `РЕЗУЛЬТАТ ${finalW}x${finalH}`;
-            }
+            // Обновляем надпись с размером + САНТИМЕТРЫ
+            updateResultLabelOnly();
 
             // Если палитра отображения пустая ИЛИ мы вышли из режима склада — сбрасываем на дефолт
             if(displayPalette.length === 0 || !isStockMode) {
@@ -4057,7 +4060,30 @@ function updateBrowserColor() {
         }
     });
 }
+// --- НОВАЯ ФУНКЦИЯ ДЛЯ ОБНОВЛЕНИЯ НАДПИСИ С САНТИМЕТРАМИ ---
+function updateResultLabelOnly() {
+    // Если матрица еще не готова, ничего не делаем
+    if (!finalMatrix || !finalMatrix.length) return;
 
+    const h = finalMatrix.length;
+    const w = finalMatrix[0].length;
+    
+    // Получаем значение из инпута (0.6 по умолчанию)
+    const inputEl = document.getElementById('blockSizeCm');
+    // Заменяем запятую на точку на случай ручного ввода и парсим
+    let valStr = inputEl ? inputEl.value.replace(',', '.') : "0.6";
+    const blockSize = parseFloat(valStr) || 0.6;
+
+    // Считаем размеры. toLocaleString делает запятую вместо точки (45,8)
+    const wCm = (w * blockSize).toLocaleString('ru-RU', { maximumFractionDigits: 1 });
+    const hCm = (h * blockSize).toLocaleString('ru-RU', { maximumFractionDigits: 1 });
+
+    const label = document.getElementById('resultLabel');
+    if (label) {
+        // Формируем итоговую строку
+        label.innerText = `РЕЗУЛЬТАТ ${w}x${h}, ${wCm}x${hCm}см`;
+    }
+}
     </script>
 <div id="loadingOverlay" class="loading-overlay">
         <div class="loading-content">
