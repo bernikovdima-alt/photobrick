@@ -48,7 +48,7 @@
             border: 5px solid rgba(255, 255, 255, 0.1);
             border-top: 5px solid var(--primary); /* Ваш желтый цвет */
             border-radius: 50%;
-            animation: spin 1s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite;
+            animation: spin 1s cubic-bezier(8, -0.55, 0.27, 1.55) infinite;
         }
 
         .loading-text {
@@ -85,7 +85,7 @@
             --btn-sec-bg: rgba(255,255,255,0.1);
             --option-bg: #2a2a2a;
             --option-text: #fff;
-            --input-bg: rgba(0, 0, 0, 0.6);
+            --input-bg: rgba(0, 0, 0, );
             
             --btn-collapsed-bg: #ffd700;
             --btn-collapsed-text: #000;
@@ -375,7 +375,7 @@
             transition: transform 0.2s ease-out; 
         }
 
-        .preview-label { margin: 0; background: rgba(0,0,0,0.6); padding: 4px 8px; border-radius: 6px; font-size: 9px; color: #fff; text-transform: uppercase; position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 5; pointer-events: none; border: 1px solid rgba(255,255,255,0.2); white-space: nowrap; line-height: normal; }
+        .preview-label { margin: 0; background: rgba(0,0,0,); padding: 4px 8px; border-radius: 6px; font-size: 9px; color: #fff; text-transform: uppercase; position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 5; pointer-events: none; border: 1px solid rgba(255,255,255,0.2); white-space: nowrap; line-height: normal; }
 
         /* --- СТАБИЛЬНЫЙ CSS С ПЛАВНЫМ ЗАТУХАНИЕМ --- */
 .mode-toggle { 
@@ -438,10 +438,10 @@ min-width: 30px; /* Чтобы не сжималась слишком сильн
         .floating-nav { position: absolute; top: 55px; left: 10px; background: transparent; backdrop-filter: none; border: none; box-shadow: none; padding: 8px; border-radius: 12px; display: none; z-index: 1000; width: 100px; height: 100px; }
         
         .nav-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; grid-template-rows: 1fr 1fr 1fr; width: 100%; height: 100%; gap: 4px; }
-        .nav-btn { background: rgba(0, 0, 0, 0.6); border: 1px solid var(--glass-border); border-radius: 4px; color: var(--text-main); font-size: 14px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
+        .nav-btn { background: rgba(0, 0, 0, ); border: 1px solid var(--glass-border); border-radius: 4px; color: var(--text-main); font-size: 14px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
         [data-theme="light"] .nav-btn { background: rgba(255, 255, 255, 0.8); color: #000; }
         .nav-btn.active { background: var(--primary); color: var(--on-primary); border-color: var(--primary); }
-        .nav-all { grid-column: 2; grid-row: 2; background: rgba(0, 0, 0, 0.6); font-size: 9px; border-radius: 50%; box-shadow: 0 0 10px rgba(0,0,0,0.3); }
+        .nav-all { grid-column: 2; grid-row: 2; background: rgba(0, 0, 0, ); font-size: 9px; border-radius: 50%; box-shadow: 0 0 10px rgba(0,0,0,0.3); }
 
         .zoom-popup-unified {
             display: none; position: absolute; height: 40px; width: 140px; background: transparent; border: none; backdrop-filter: none; box-shadow: none; align-items: center; justify-content: center; padding: 0 10px; z-index: 9999;
@@ -646,7 +646,7 @@ min-width: 30px; /* Чтобы не сжималась слишком сильн
         
 .preview-label {
             margin: 0;
-            background: rgba(0,0,0,0.6);
+            background: rgba(0,0,0,);
             padding: 4px 8px;
             border-radius: 4px; /* Чуть меньше радиус, чтобы вписаться в угол */
             font-size: 9px;
@@ -1028,7 +1028,7 @@ min-width: 30px; /* Чтобы не сжималась слишком сильн
         <div class="slider-header-compact" style="justify-content: flex-start; gap: 5px;">
             Размер блока (см)
         </div>
-        <input type="number" id="blockSizeCm" class="modern-input" step="0.1" value="0.6" oninput="updateResultLabelOnly()">
+        <input type="number" id="blockSizeCm" class="modern-input" step="0.1" value="0.8" oninput="updateResultLabelOnly()">
     </div>
 
 </div>
@@ -4093,3 +4093,4 @@ function updateResultLabelOnly() {
     </div>
 </body>
 </html>
+
