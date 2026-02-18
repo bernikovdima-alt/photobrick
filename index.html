@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PhotoBrick v2.4.2</title>
+    <title>PhotoBrick v2.4.3</title>
 
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" href="icon.png">
@@ -668,6 +668,7 @@ min-width: 30px; /* Чтобы не сжималась слишком сильн
             font-size: 7px !important;   /* Уменьшенный шрифт (было 9px) */
             padding: 2px 5px !important; /* Более компактная подложка */
             letter-spacing: 0.5px;       /* Чуть разрядим буквы для читаемости */
+	        background: rgba(0, 0, 0, 0.6) !important; /* 0.85 - это сильное затемнение */
         }
             /* 7. Инструкция (Схема) */
             #instructionView { 
@@ -1161,7 +1162,7 @@ min-width: 30px; /* Чтобы не сжималась слишком сильн
             </div>
             
             <div id="versionLabel" onclick="cycleLayoutMode()" style="text-align:center; font-size:10px; color:var(--text-sec); margin-top:20px; opacity:0.6; cursor:pointer; user-select:none;" title="Нажми для смены режима (Auto/Mobile/PC)">
-    PhotoBrick v2.4.2
+    PhotoBrick v2.4.3
 </div>
         </aside>
 
@@ -1204,7 +1205,7 @@ min-width: 30px; /* Чтобы не сжималась слишком сильн
         <img id="originalImageThumb" class="preview-content">
     </div>
     
-    <button id="renderModeBtn" class="btn btn-sec" onclick="toggleRenderMode()" style="pointer-events: auto; padding: 4px 10px; font-size: 10px; height: auto; width: 100%; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: var(--primary); font-weight: 800; margin-bottom: 0;">
+    <button id="renderModeBtn" class="btn btn-sec" onclick="toggleRenderMode()" style="pointer-events: auto; padding: 4px 10px; font-size: 10px; height: auto; width: 100%; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: var(--primary); font-weight: 600; margin-bottom: 0;">
         ОБЫЧНЫЙ
     </button>
 
@@ -3883,19 +3884,19 @@ function cycleLayoutMode() {
     if (layoutModeState === 0) {
         // АВТО (Возвращаем как было)
         targetRule.conditionText = ORIGINAL_MEDIA_QUERY;
-        label.innerText = "PhotoBrick v2.4.2";
+        label.innerText = "PhotoBrick v2.4.3";
         label.style.color = "var(--text-sec)";
     } 
     else if (layoutModeState === 1) {
         // ПРИНУДИТЕЛЬНО МОБИЛЬНЫЙ (условие "all" срабатывает всегда)
         targetRule.conditionText = "all";
-        label.innerText = "PhotoBrick v2.4.2 (Mobile)";
+        label.innerText = "PhotoBrick v2.4.3 (Mobile)";
         label.style.color = "var(--primary)"; // Подсветим желтым/синим
     } 
     else if (layoutModeState === 2) {
         // ПРИНУДИТЕЛЬНО ПК (условие "max-width: 0px" никогда не сработает)
         targetRule.conditionText = "max-width: 0px";
-        label.innerText = "PhotoBrick v2.4.2 (PC)";
+        label.innerText = "PhotoBrick v2.4.3 (PC)";
         label.style.color = "var(--primary)";
     }
 }
@@ -4093,4 +4094,5 @@ function updateResultLabelOnly() {
     </div>
 </body>
 </html>
+
 
