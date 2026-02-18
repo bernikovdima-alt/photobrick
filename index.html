@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PhotoBrick v2.4.0</title>
+    <title>PhotoBrick v2.4.2</title>
 
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" href="icon.png">
@@ -1153,7 +1153,7 @@ min-width: 30px; /* Чтобы не сжималась слишком сильн
             </div>
             
             <div id="versionLabel" onclick="cycleLayoutMode()" style="text-align:center; font-size:10px; color:var(--text-sec); margin-top:20px; opacity:0.6; cursor:pointer; user-select:none;" title="Нажми для смены режима (Auto/Mobile/PC)">
-    PhotoBrick v2.4.0
+    PhotoBrick v2.4.2
 </div>
         </aside>
 
@@ -1195,6 +1195,11 @@ min-width: 30px; /* Чтобы не сжималась слишком сильн
         <div class="preview-label">ОРИГИНАЛ</div>
         <img id="originalImageThumb" class="preview-content">
     </div>
+    
+    <button id="renderModeBtn" class="btn btn-sec" onclick="toggleRenderMode()" style="pointer-events: auto; padding: 4px 10px; font-size: 10px; height: auto; width: 100%; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: var(--primary); font-weight: 800; margin-bottom: 0;">
+        ОБЫЧНЫЙ
+    </button>
+
     <button class="btn btn-sec" onclick="resetResultView()" style="pointer-events: auto; padding: 4px 10px; font-size: 10px; height: auto; width: 100%; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: #fff;">
         В ЦЕНТР
     </button>
@@ -2161,21 +2166,102 @@ if (preset === 'pixelart') {
                 const structurePalette = (['custom_ai', 'random_chaos'].includes(preset) && aiBasePalette.length > 0) ? aiBasePalette : currentPalette; const paletteRGB = structurePalette.map(hex => { const r = parseInt(hex.slice(1,3), 16); const g = parseInt(hex.slice(3,5), 16); const b = parseInt(hex.slice(5,7), 16); return {r,g,b}; }); generatedMatrix = []; for(let y=0; y<h; y++) { let row = []; for(let x=0; x<w; x++) { const i = (y*w+x)*4; let oldR = finalData[i], oldG = finalData[i+1], oldB = finalData[i+2]; let bestIdx = 0, minDist = Infinity; paletteRGB.forEach((c, idx) => { const dist = Math.sqrt(Math.pow(c.r-oldR,2) + Math.pow(c.g-oldG,2) + Math.pow(c.b-oldB,2)); if(dist < minDist) { minDist = dist; bestIdx = idx; } }); row.push(bestIdx); } generatedMatrix.push(row); } }
             finalizeMatrixWithBorder();
         }
-        function drawPreview() { 
-            const cvs = document.getElementById('mainCanvas'); 
-            const ctx = cvs.getContext('2d'); 
-            const h = finalMatrix.length;
-            const w = finalMatrix[0].length;
-            const scale = 10; 
-            cvs.width = w * scale; 
-            cvs.height = h * scale; 
-            finalMatrix.forEach((row, y) => { 
-                row.forEach((idx, x) => { 
-                    ctx.fillStyle = displayPalette[idx] || currentPalette[idx] || '#000'; 
-                    ctx.fillRect(x*scale, y*scale, scale, scale); 
-                }); 
+        // --- НОВЫЙ ФУНКЦИОНАЛ: РЕЖИМЫ ОТОБРАЖЕНИЯ (RENDER MODES) ---
+
+    const RENDER_MODES = ["ОБЫЧНЫЙ", "СЕТКА", "КРУЖОК", "ЛЕГО"];
+    let renderModeIndex = 0; // 0=Normal, 1=Grid, 2=Circle, 3=Lego
+
+    function toggleRenderMode() {
+        // Переключаем индекс: 0 -> 1 -> 2 -> 3 -> 0
+        renderModeIndex = (renderModeIndex + 1) % RENDER_MODES.length;
+        
+        // Обновляем текст кнопки
+        const btn = document.getElementById('renderModeBtn');
+        btn.innerText = RENDER_MODES[renderModeIndex];
+        
+        // Перерисовываем канвас
+        drawPreview();
+    }
+
+    // --- ОБНОВЛЕННАЯ ФУНКЦИЯ ОТРИСОВКИ ---
+    // Заменяет старую функцию drawPreview
+    function drawPreview() { 
+        const cvs = document.getElementById('mainCanvas'); 
+        const ctx = cvs.getContext('2d'); 
+        
+        if (!finalMatrix.length) return;
+
+        const h = finalMatrix.length;
+        const w = finalMatrix[0].length;
+        const scale = 10; // Размер одного "пикселя" на канвасе превью
+        
+        cvs.width = w * scale; 
+        cvs.height = h * scale; 
+        
+        // Очищаем холст (важно для режима "Кружок", чтобы был прозрачный фон)
+        ctx.clearRect(0, 0, cvs.width, cvs.height);
+
+        finalMatrix.forEach((row, y) => { 
+            row.forEach((idx, x) => { 
+                const color = displayPalette[idx] || currentPalette[idx] || '#000'; 
+                const posX = x * scale;
+                const posY = y * scale;
+
+                ctx.fillStyle = color;
+
+                // ЛОГИКА ОТРИСОВКИ В ЗАВИСИМОСТИ ОТ РЕЖИМА
+                if (renderModeIndex === 0) { 
+                    // 1. ОБЫЧНЫЙ (Сплошная заливка)
+                    ctx.fillRect(posX, posY, scale, scale); 
+
+                } else if (renderModeIndex === 1) { 
+                    // 2. СЕТКА (Черная обводка)
+                    ctx.fillRect(posX, posY, scale, scale);
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 0.2; // Тонкая линия 1
+                    ctx.strokeRect(posX, posY, scale, scale);
+
+                } else if (renderModeIndex === 2) { 
+                    // 3. КРУЖОК (Круг с зазорами)
+                    const cx = posX + scale / 2;
+                    const cy = posY + scale / 2;
+                    const radius = (scale / 2) * 0.85; // Чуть меньше клетки (85%)
+                    
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+                    ctx.fill();
+
+                } else if (renderModeIndex === 3) { 
+                    // 4. ЛЕГО: "Чистый пластик"
+    
+    // 1. Рисуем основу (квадрат) чистого цвета
+    ctx.fillStyle = color;
+    ctx.fillRect(posX, posY, scale, scale);
+
+    const cx = posX + scale / 2;
+    const cy = posY + scale / 2;
+    const radius = scale * 0.35; // Чуть меньше радиус, чтобы не слипались
+    
+    // 2. Рисуем БЛИК (Свет сверху-слева) - Белая полупрозрачная дуга
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, Math.PI * 0.85, Math.PI * 1.65); // Дуга сверху-слева
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.6)"; // Яркий, но прозрачный белый
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // 3. Рисуем ТЕНЬ (Снизу-справа) - Черная полупрозрачная дуга
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, Math.PI * 1.85, Math.PI * 0.65); // Дуга снизу-справа
+    ctx.strokeStyle = "rgba(0, 0, 0, 0.2)"; // Легкая тень
+    ctx.lineWidth = 1;
+    ctx.stroke();
+                    
+                    // Возвращаем цвет заливки для следующего цикла
+                    ctx.fillStyle = color; 
+                }
             }); 
-        }
+        }); 
+    }
         function renderPaletteUI() { 
             const c = document.getElementById('paletteContainer'); 
             c.innerHTML = ''; 
@@ -3794,19 +3880,19 @@ function cycleLayoutMode() {
     if (layoutModeState === 0) {
         // АВТО (Возвращаем как было)
         targetRule.conditionText = ORIGINAL_MEDIA_QUERY;
-        label.innerText = "PhotoBrick v2.4.0";
+        label.innerText = "PhotoBrick v2.4.2";
         label.style.color = "var(--text-sec)";
     } 
     else if (layoutModeState === 1) {
         // ПРИНУДИТЕЛЬНО МОБИЛЬНЫЙ (условие "all" срабатывает всегда)
         targetRule.conditionText = "all";
-        label.innerText = "PhotoBrick v2.4.0 (Mobile)";
+        label.innerText = "PhotoBrick v2.4.2 (Mobile)";
         label.style.color = "var(--primary)"; // Подсветим желтым/синим
     } 
     else if (layoutModeState === 2) {
         // ПРИНУДИТЕЛЬНО ПК (условие "max-width: 0px" никогда не сработает)
         targetRule.conditionText = "max-width: 0px";
-        label.innerText = "PhotoBrick v2.4.0 (PC)";
+        label.innerText = "PhotoBrick v2.4.2 (PC)";
         label.style.color = "var(--primary)";
     }
 }
