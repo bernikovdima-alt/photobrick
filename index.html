@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PhotoBrick v2.4.3</title>
+    <title>PhotoBrick v2.4.4</title>
 
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" href="icon.png">
@@ -1162,7 +1162,7 @@ min-width: 30px; /* Чтобы не сжималась слишком сильн
             </div>
             
             <div id="versionLabel" onclick="cycleLayoutMode()" style="text-align:center; font-size:10px; color:var(--text-sec); margin-top:20px; opacity:0.6; cursor:pointer; user-select:none;" title="Нажми для смены режима (Auto/Mobile/PC)">
-    PhotoBrick v2.4.3
+    PhotoBrick v2.4.4
 </div>
         </aside>
 
@@ -2172,7 +2172,7 @@ if (preset === 'pixelart') {
         }
         // --- НОВЫЙ ФУНКЦИОНАЛ: РЕЖИМЫ ОТОБРАЖЕНИЯ (RENDER MODES) ---
 
-    const RENDER_MODES = ["ОБЫЧНЫЙ", "СЕТКА", "КРУЖОК", "ЛЕГО"];
+    const RENDER_MODES = ["ОБЫЧНЫЙ", "СЕТКА", "КРУЖОК", "ЛЕГО", "КРЕСТИК"];
     let renderModeIndex = 0; // 0=Normal, 1=Grid, 2=Circle, 3=Lego
 
     function toggleRenderMode() {
@@ -2235,19 +2235,22 @@ if (preset === 'pixelart') {
                     ctx.arc(cx, cy, radius, 0, Math.PI * 2);
                     ctx.fill();
 
-                } else if (renderModeIndex === 3) { 
+                } 
+
+
+else if (renderModeIndex === 3) { 
                     // 4. ЛЕГО: "Чистый пластик"
     
-    // 1. Рисуем основу (квадрат) чистого цвета
-    ctx.fillStyle = color;
-    ctx.fillRect(posX, posY, scale, scale);
+                   // 1. Рисуем основу (квадрат) чистого цвета
+                     ctx.fillStyle = color;
+                     ctx.fillRect(posX, posY, scale, scale);
 
-    const cx = posX + scale / 2;
-    const cy = posY + scale / 2;
-    const radius = scale * 0.35; // Чуть меньше радиус, чтобы не слипались
+                    const cx = posX + scale / 2;
+                   const cy = posY + scale / 2;
+                   const radius = scale * 0.35; // Чуть меньше радиус, чтобы не слипались
     
-    // 2. Рисуем БЛИК (Свет сверху-слева) - Белая полупрозрачная дуга
-    ctx.beginPath();
+                  // 2. Рисуем БЛИК (Свет сверху-слева) - Белая полупрозрачная дуга
+                  ctx.beginPath();
     ctx.arc(cx, cy, radius, Math.PI * 0.85, Math.PI * 1.65); // Дуга сверху-слева
     ctx.strokeStyle = "rgba(255, 255, 255, 0.6)"; // Яркий, но прозрачный белый
     ctx.lineWidth = 1;
@@ -2262,7 +2265,82 @@ if (preset === 'pixelart') {
                     
                     // Возвращаем цвет заливки для следующего цикла
                     ctx.fillStyle = color; 
+               } else if (renderModeIndex === 4) { 
+                    // 5. КРЕСТИК: перекрытие + тень + блеск мулине
+                    const pad = 1.5; 
+                    
+                    // --- Координаты нитей ---
+                    // Нижняя нить (справа налево /)
+                    const bStartX = posX + scale - pad, bStartY = posY + pad;
+                    const bEndX = posX + pad, bEndY = posY + scale - pad;
+                    // Верхняя нить (слева направо \)
+                    const tStartX = posX + pad, tStartY = posY + pad;
+                    const tEndX = posX + scale - pad, tEndY = posY + scale - pad;
+
+                    ctx.lineCap = 'round';
+
+                    // === ШАГ 1: НИЖНЯЯ НИТЬ ===
+                    // 1а. Основной цвет и падающая тень
+                    ctx.beginPath();
+                    ctx.moveTo(bStartX, bStartY);
+                    ctx.lineTo(bEndX, bEndY);
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth =4.0; // Чуть толще для объема
+                    ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+                    ctx.shadowBlur = 2;
+                    ctx.shadowOffsetX = 1;
+                    ctx.shadowOffsetY = 1;
+                    ctx.stroke();
+
+                    // 1б. Блик (градиент) без тени
+                    ctx.shadowColor = 'transparent'; // Отключаем тень для блика
+                    const shineBottom = ctx.createLinearGradient(bStartX, bStartY, bEndX, bEndY);
+                    shineBottom.addColorStop(0, 'rgba(255, 255, 255, 0)');
+                    shineBottom.addColorStop(0.5, 'rgba(255, 255, 255, 0.4)'); // Яркий центр
+                    shineBottom.addColorStop(1, 'rgba(255, 255, 255, 0)');
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(bStartX, bStartY);
+                    ctx.lineTo(bEndX, bEndY);
+                    ctx.strokeStyle = shineBottom;
+                    ctx.lineWidth = 1.0; // Блик должен быть тоньше самой нити
+                    ctx.stroke();
+
+                    // === ШАГ 2: ВЕРХНЯЯ НИТЬ ===
+                    // 2а. Основной цвет и тень (падает прямо на нижнюю нить!)
+                    ctx.beginPath();
+                    ctx.moveTo(tStartX, tStartY);
+                    ctx.lineTo(tEndX, tEndY);
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 4.0;
+                    ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+                    ctx.shadowBlur = 2;
+                    ctx.shadowOffsetX = 1;
+                    ctx.shadowOffsetY = 1;
+                    ctx.stroke();
+
+                    // 2б. Блик (градиент) без тени
+                    ctx.shadowColor = 'transparent';
+                    const shineTop = ctx.createLinearGradient(tStartX, tStartY, tEndX, tEndY);
+                    shineTop.addColorStop(0, 'rgba(255, 255, 255, 0)');
+                    shineTop.addColorStop(0.5, 'rgba(255, 255, 255, 0.4)');
+                    shineTop.addColorStop(1, 'rgba(255, 255, 255, 0)');
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(tStartX, tStartY);
+                    ctx.lineTo(tEndX, tEndY);
+                    ctx.strokeStyle = shineTop;
+                    ctx.lineWidth = 1.0; 
+                    ctx.stroke();
+
+                    // --- ОБЯЗАТЕЛЬНЫЙ СБРОС НАСТРОЕК ---
+                    ctx.shadowBlur = 0;
+                    ctx.shadowOffsetX = 0;
+                    ctx.shadowOffsetY = 0;
+                    ctx.fillStyle = color;
+                    ctx.lineCap = 'butt';
                 }
+
             }); 
         }); 
     }
@@ -3884,13 +3962,13 @@ function cycleLayoutMode() {
     if (layoutModeState === 0) {
         // АВТО (Возвращаем как было)
         targetRule.conditionText = ORIGINAL_MEDIA_QUERY;
-        label.innerText = "PhotoBrick v2.4.3";
+        label.innerText = "PhotoBrick v2.4.4";
         label.style.color = "var(--text-sec)";
     } 
     else if (layoutModeState === 1) {
         // ПРИНУДИТЕЛЬНО МОБИЛЬНЫЙ (условие "all" срабатывает всегда)
         targetRule.conditionText = "all";
-        label.innerText = "PhotoBrick v2.4.3 (Mobile)";
+        label.innerText = "PhotoBrick v2.4.4 (Mobile)";
         label.style.color = "var(--primary)"; // Подсветим желтым/синим
     } 
     else if (layoutModeState === 2) {
@@ -4094,5 +4172,4 @@ function updateResultLabelOnly() {
     </div>
 </body>
 </html>
-
 
