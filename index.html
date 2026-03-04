@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PhotoBrick v2.4.4</title>
+    <title>PhotoBrick v2.4.5</title>
 
 <link rel="manifest" href="manifest.json">
 <link rel="icon" type="image/png" href="icon.png">
@@ -1162,7 +1162,7 @@ min-width: 30px; /* Чтобы не сжималась слишком сильн
             </div>
             
             <div id="versionLabel" onclick="cycleLayoutMode()" style="text-align:center; font-size:10px; color:var(--text-sec); margin-top:20px; opacity:0.6; cursor:pointer; user-select:none;" title="Нажми для смены режима (Auto/Mobile/PC)">
-    PhotoBrick v2.4.4
+    PhotoBrick v2.4.5
 </div>
         </aside>
 
@@ -1212,6 +1212,9 @@ min-width: 30px; /* Чтобы не сжималась слишком сильн
     <button class="btn btn-sec" onclick="resetResultView()" style="pointer-events: auto; padding: 4px 10px; font-size: 10px; height: auto; width: 100%; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: #fff;">
         В ЦЕНТР
     </button>
+<button class="btn btn-sec" onclick="openSaveModal()" style="pointer-events: auto; padding: 4px 10px; font-size: 10px; height: auto; width: 100%; border: 1px solid var(--primary); background: rgba(255, 215, 0, 0.1); color: var(--primary); font-weight: 700; margin-top: 4px;">
+        СОХР. в PNG
+    </button>
 </div>
                 </div>
             </div>
@@ -1244,6 +1247,30 @@ min-width: 30px; /* Чтобы не сжималась слишком сильн
             </div>
         </div>
     </div>
+<div id="saveImageModal" class="modal-overlay" onclick="closeSaveModal(event)">
+    <div class="modal" style="max-width: 300px;">
+        <div class="modal-header">
+            <span>Сохранение PNG</span>
+            <button class="top-btn" onclick="document.getElementById('saveImageModal').style.display='none'">✖</button>
+        </div>
+        <div class="modal-body" style="display: flex; flex-direction: column; gap: 15px;">
+            <div>
+                <label style="font-size: 11px; color: var(--text-sec); font-weight: bold;">Название файла:</label>
+                <input type="text" id="saveFileName" class="modern-input" value="photobrick_art" style="width: 100%; margin-top: 5px;">
+            </div>
+            <div>
+                <label style="font-size: 11px; color: var(--text-sec); font-weight: bold;">Качество (масштаб):</label>
+                <select id="saveQuality" class="modern-select" style="width: 100%; margin-top: 5px;">
+                    <option value="1">Низкое (Оригинал 1x)</option>
+                    <option value="3" selected>Среднее (Увеличено 3x)</option>
+                    <option value="5">Высокое (Увеличено 5x)</option>
+                    <option value="10">Ультра (Увеличено 10x)</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" onclick="executeImageSave()" style="margin-top: 5px; font-size: 12px; padding: 10px;">💾 СКАЧАТЬ</button>
+        </div>
+    </div>
+</div>
     <script>
         const SYMBOL_SETS = { 
     letters: ["B", "X", "G", "H", "W", "A", "C", "D", "E", "F", "K", "L"], 
@@ -3962,13 +3989,13 @@ function cycleLayoutMode() {
     if (layoutModeState === 0) {
         // АВТО (Возвращаем как было)
         targetRule.conditionText = ORIGINAL_MEDIA_QUERY;
-        label.innerText = "PhotoBrick v2.4.4";
+        label.innerText = "PhotoBrick v2.4.5";
         label.style.color = "var(--text-sec)";
     } 
     else if (layoutModeState === 1) {
         // ПРИНУДИТЕЛЬНО МОБИЛЬНЫЙ (условие "all" срабатывает всегда)
         targetRule.conditionText = "all";
-        label.innerText = "PhotoBrick v2.4.4 (Mobile)";
+        label.innerText = "PhotoBrick v2.4.5 (Mobile)";
         label.style.color = "var(--primary)"; // Подсветим желтым/синим
     } 
     else if (layoutModeState === 2) {
@@ -4163,6 +4190,53 @@ function updateResultLabelOnly() {
         label.innerText = `РЕЗУЛЬТАТ ${w}x${h}, ${wCm}x${hCm}см`;
     }
 }
+// --- ЛОГИКА СОХРАНЕНИЯ КАРТИНКИ "РЕЗУЛЬТАТ" ---
+function openSaveModal() {
+    if (!finalMatrix || !finalMatrix.length) {
+        alert("Сначала загрузите и обработайте фото!");
+        return;
+    }
+    document.getElementById('saveImageModal').style.display = 'flex';
+}
+
+function closeSaveModal(e) {
+    if (e.target.id === 'saveImageModal') {
+        e.target.style.display = 'none';
+    }
+}
+
+function executeImageSave() {
+    let fileName = document.getElementById('saveFileName').value.trim() || 'photobrick_art';
+    const qualityMult = parseInt(document.getElementById('saveQuality').value) || 3;
+    
+    const mainCanvas = document.getElementById('mainCanvas');
+    
+    // Создаем временный холст для высокого качества
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = mainCanvas.width * qualityMult;
+    tempCanvas.height = mainCanvas.height * qualityMult;
+    const ctx = tempCanvas.getContext('2d');
+    
+    // ВАЖНО: Отключаем сглаживание, чтобы пиксели/лего оставались четкими при увеличении!
+    ctx.imageSmoothingEnabled = false;
+    
+    // Отрисовываем текущий вид с главного холста на увеличенный
+    ctx.drawImage(mainCanvas, 0, 0, tempCanvas.width, tempCanvas.height);
+    
+    // Получаем ссылку на картинку
+    const dataUrl = tempCanvas.toDataURL('image/png');
+    
+    // Создаем невидимую ссылку и кликаем по ней для скачивания
+    const a = document.createElement('a');
+    a.href = dataUrl;
+    a.download = fileName + '.png';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    
+    // Закрываем окно после скачивания
+    document.getElementById('saveImageModal').style.display = 'none';
+}
     </script>
 <div id="loadingOverlay" class="loading-overlay">
         <div class="loading-content">
@@ -4172,5 +4246,4 @@ function updateResultLabelOnly() {
     </div>
 </body>
 </html>
-
 
