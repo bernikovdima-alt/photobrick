@@ -2216,7 +2216,7 @@ if (preset === 'pixelart') {
 
     // --- ОБНОВЛЕННАЯ ФУНКЦИЯ ОТРИСОВКИ ---
     // Заменяет старую функцию drawPreview
-    function drawPreview() { 
+function drawPreview() { 
         const cvs = document.getElementById('mainCanvas'); 
         const ctx = cvs.getContext('2d'); 
         
@@ -2224,14 +2224,120 @@ if (preset === 'pixelart') {
 
         const h = finalMatrix.length;
         const w = finalMatrix[0].length;
-        const scale = 10; // Размер одного "пикселя" на канвасе превью
+        const scale = 10; 
         
         cvs.width = w * scale; 
         cvs.height = h * scale; 
         
-        // Очищаем холст (важно для режима "Кружок", чтобы был прозрачный фон)
-        ctx.clearRect(0, 0, cvs.width, cvs.height);
+        // Заливаем фон правильным цветом темы
+        const isLight = document.body.getAttribute('data-theme') === 'light';
+        ctx.fillStyle = isLight ? '#E9EEF6' : '#1e1e24';
+        ctx.fillRect(0, 0, cvs.width, cvs.height);
 
+        // --- КЭШ СПРАЙТОВ (ГЛАВНАЯ ОПТИМИЗАЦИЯ) ---
+        // Хранит уже нарисованные крестики и лего, чтобы не рисовать их заново
+        const spriteCache = {};
+
+        // Генератор крестика (рисует 1 раз в память)
+        function getCrossSprite(color) {
+            const cacheKey = 'cross_' + color;
+            if (spriteCache[cacheKey]) return spriteCache[cacheKey];
+
+            const sCvs = document.createElement('canvas');
+            sCvs.width = scale; sCvs.height = scale;
+            const sCtx = sCvs.getContext('2d');
+            
+            const pad = 1.5; 
+            const bStartX = scale - pad, bStartY = pad;
+            const bEndX = pad, bEndY = scale - pad;
+            const tStartX = pad, tStartY = pad;
+            const tEndX = scale - pad, tEndY = scale - pad;
+
+            sCtx.lineCap = 'round';
+
+            // ШАГ 1: НИЖНЯЯ НИТЬ
+            sCtx.beginPath();
+            sCtx.moveTo(bStartX, bStartY);
+            sCtx.lineTo(bEndX, bEndY);
+            sCtx.strokeStyle = color;
+            sCtx.lineWidth = 4.0;
+            sCtx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+            sCtx.shadowBlur = 2;
+            sCtx.shadowOffsetX = 1;
+            sCtx.shadowOffsetY = 1;
+            sCtx.stroke();
+
+            sCtx.shadowColor = 'transparent';
+            const shineBottom = sCtx.createLinearGradient(bStartX, bStartY, bEndX, bEndY);
+            shineBottom.addColorStop(0, 'rgba(255, 255, 255, 0)');
+            shineBottom.addColorStop(0.5, 'rgba(255, 255, 255, 0.4)');
+            shineBottom.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            sCtx.beginPath();
+            sCtx.moveTo(bStartX, bStartY);
+            sCtx.lineTo(bEndX, bEndY);
+            sCtx.strokeStyle = shineBottom;
+            sCtx.lineWidth = 1.0;
+            sCtx.stroke();
+
+            // ШАГ 2: ВЕРХНЯЯ НИТЬ
+            sCtx.beginPath();
+            sCtx.moveTo(tStartX, tStartY);
+            sCtx.lineTo(tEndX, tEndY);
+            sCtx.strokeStyle = color;
+            sCtx.lineWidth = 4.0;
+            sCtx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+            sCtx.shadowBlur = 2;
+            sCtx.shadowOffsetX = 1;
+            sCtx.shadowOffsetY = 1;
+            sCtx.stroke();
+
+            sCtx.shadowColor = 'transparent';
+            const shineTop = sCtx.createLinearGradient(tStartX, tStartY, tEndX, tEndY);
+            shineTop.addColorStop(0, 'rgba(255, 255, 255, 0)');
+            shineTop.addColorStop(0.5, 'rgba(255, 255, 255, 0.4)');
+            shineTop.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            sCtx.beginPath();
+            sCtx.moveTo(tStartX, tStartY);
+            sCtx.lineTo(tEndX, tEndY);
+            sCtx.strokeStyle = shineTop;
+            sCtx.lineWidth = 1.0;
+            sCtx.stroke();
+
+            spriteCache[cacheKey] = sCvs;
+            return sCvs;
+        }
+
+        // Генератор ЛЕГО (рисует 1 раз в память)
+        function getLegoSprite(color) {
+            const cacheKey = 'lego_' + color;
+            if (spriteCache[cacheKey]) return spriteCache[cacheKey];
+
+            const sCvs = document.createElement('canvas');
+            sCvs.width = scale; sCvs.height = scale;
+            const sCtx = sCvs.getContext('2d');
+
+            sCtx.fillStyle = color;
+            sCtx.fillRect(0, 0, scale, scale);
+
+            const cx = scale / 2, cy = scale / 2, radius = scale * 0.35;
+            
+            sCtx.beginPath();
+            sCtx.arc(cx, cy, radius, Math.PI * 0.85, Math.PI * 1.65); 
+            sCtx.strokeStyle = "rgba(255, 255, 255, 0.6)"; 
+            sCtx.lineWidth = 1;
+            sCtx.stroke();
+
+            sCtx.beginPath();
+            sCtx.arc(cx, cy, radius, Math.PI * 1.85, Math.PI * 0.65); 
+            sCtx.strokeStyle = "rgba(0, 0, 0, 0.2)"; 
+            sCtx.lineWidth = 1;
+            sCtx.stroke();
+
+            spriteCache[cacheKey] = sCvs;
+            return sCvs;
+        }
+
+        // --- ГЛАВНЫЙ ЦИКЛ ОТРИСОВКИ ---
         finalMatrix.forEach((row, y) => { 
             row.forEach((idx, x) => { 
                 const color = displayPalette[idx] || currentPalette[idx] || '#000'; 
@@ -2240,134 +2346,34 @@ if (preset === 'pixelart') {
 
                 ctx.fillStyle = color;
 
-                // ЛОГИКА ОТРИСОВКИ В ЗАВИСИМОСТИ ОТ РЕЖИМА
                 if (renderModeIndex === 0) { 
-                    // 1. ОБЫЧНЫЙ (Сплошная заливка)
+                    // 1. ОБЫЧНЫЙ
                     ctx.fillRect(posX, posY, scale, scale); 
 
                 } else if (renderModeIndex === 1) { 
-                    // 2. СЕТКА (Черная обводка)
+                    // 2. СЕТКА
                     ctx.fillRect(posX, posY, scale, scale);
                     ctx.strokeStyle = '#000';
-                    ctx.lineWidth = 0.2; // Тонкая линия 1
+                    ctx.lineWidth = 0.2;
                     ctx.strokeRect(posX, posY, scale, scale);
 
                 } else if (renderModeIndex === 2) { 
-                    // 3. КРУЖОК (Круг с зазорами)
+                    // 3. КРУЖОК
                     const cx = posX + scale / 2;
                     const cy = posY + scale / 2;
-                    const radius = (scale / 2) * 0.85; // Чуть меньше клетки (85%)
-                    
+                    const radius = (scale / 2) * 0.85;
                     ctx.beginPath();
                     ctx.arc(cx, cy, radius, 0, Math.PI * 2);
                     ctx.fill();
 
-                } 
+                } else if (renderModeIndex === 3) { 
+                    // 4. ЛЕГО (Быстрый штамп)
+                    ctx.drawImage(getLegoSprite(color), posX, posY);
 
-
-else if (renderModeIndex === 3) { 
-                    // 4. ЛЕГО: "Чистый пластик"
-    
-                   // 1. Рисуем основу (квадрат) чистого цвета
-                     ctx.fillStyle = color;
-                     ctx.fillRect(posX, posY, scale, scale);
-
-                    const cx = posX + scale / 2;
-                   const cy = posY + scale / 2;
-                   const radius = scale * 0.35; // Чуть меньше радиус, чтобы не слипались
-    
-                  // 2. Рисуем БЛИК (Свет сверху-слева) - Белая полупрозрачная дуга
-                  ctx.beginPath();
-    ctx.arc(cx, cy, radius, Math.PI * 0.85, Math.PI * 1.65); // Дуга сверху-слева
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.6)"; // Яркий, но прозрачный белый
-    ctx.lineWidth = 1;
-    ctx.stroke();
-
-    // 3. Рисуем ТЕНЬ (Снизу-справа) - Черная полупрозрачная дуга
-    ctx.beginPath();
-    ctx.arc(cx, cy, radius, Math.PI * 1.85, Math.PI * 0.65); // Дуга снизу-справа
-    ctx.strokeStyle = "rgba(0, 0, 0, 0.2)"; // Легкая тень
-    ctx.lineWidth = 1;
-    ctx.stroke();
-                    
-                    // Возвращаем цвет заливки для следующего цикла
-                    ctx.fillStyle = color; 
-               } else if (renderModeIndex === 4) { 
-                    // 5. КРЕСТИК: перекрытие + тень + блеск мулине
-                    const pad = 1.5; 
-                    
-                    // --- Координаты нитей ---
-                    // Нижняя нить (справа налево /)
-                    const bStartX = posX + scale - pad, bStartY = posY + pad;
-                    const bEndX = posX + pad, bEndY = posY + scale - pad;
-                    // Верхняя нить (слева направо \)
-                    const tStartX = posX + pad, tStartY = posY + pad;
-                    const tEndX = posX + scale - pad, tEndY = posY + scale - pad;
-
-                    ctx.lineCap = 'round';
-
-                    // === ШАГ 1: НИЖНЯЯ НИТЬ ===
-                    // 1а. Основной цвет и падающая тень
-                    ctx.beginPath();
-                    ctx.moveTo(bStartX, bStartY);
-                    ctx.lineTo(bEndX, bEndY);
-                    ctx.strokeStyle = color;
-                    ctx.lineWidth =4.0; // Чуть толще для объема
-                    ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
-                    ctx.shadowBlur = 2;
-                    ctx.shadowOffsetX = 1;
-                    ctx.shadowOffsetY = 1;
-                    ctx.stroke();
-
-                    // 1б. Блик (градиент) без тени
-                    ctx.shadowColor = 'transparent'; // Отключаем тень для блика
-                    const shineBottom = ctx.createLinearGradient(bStartX, bStartY, bEndX, bEndY);
-                    shineBottom.addColorStop(0, 'rgba(255, 255, 255, 0)');
-                    shineBottom.addColorStop(0.5, 'rgba(255, 255, 255, 0.4)'); // Яркий центр
-                    shineBottom.addColorStop(1, 'rgba(255, 255, 255, 0)');
-                    
-                    ctx.beginPath();
-                    ctx.moveTo(bStartX, bStartY);
-                    ctx.lineTo(bEndX, bEndY);
-                    ctx.strokeStyle = shineBottom;
-                    ctx.lineWidth = 1.0; // Блик должен быть тоньше самой нити
-                    ctx.stroke();
-
-                    // === ШАГ 2: ВЕРХНЯЯ НИТЬ ===
-                    // 2а. Основной цвет и тень (падает прямо на нижнюю нить!)
-                    ctx.beginPath();
-                    ctx.moveTo(tStartX, tStartY);
-                    ctx.lineTo(tEndX, tEndY);
-                    ctx.strokeStyle = color;
-                    ctx.lineWidth = 4.0;
-                    ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
-                    ctx.shadowBlur = 2;
-                    ctx.shadowOffsetX = 1;
-                    ctx.shadowOffsetY = 1;
-                    ctx.stroke();
-
-                    // 2б. Блик (градиент) без тени
-                    ctx.shadowColor = 'transparent';
-                    const shineTop = ctx.createLinearGradient(tStartX, tStartY, tEndX, tEndY);
-                    shineTop.addColorStop(0, 'rgba(255, 255, 255, 0)');
-                    shineTop.addColorStop(0.5, 'rgba(255, 255, 255, 0.4)');
-                    shineTop.addColorStop(1, 'rgba(255, 255, 255, 0)');
-                    
-                    ctx.beginPath();
-                    ctx.moveTo(tStartX, tStartY);
-                    ctx.lineTo(tEndX, tEndY);
-                    ctx.strokeStyle = shineTop;
-                    ctx.lineWidth = 1.0; 
-                    ctx.stroke();
-
-                    // --- ОБЯЗАТЕЛЬНЫЙ СБРОС НАСТРОЕК ---
-                    ctx.shadowBlur = 0;
-                    ctx.shadowOffsetX = 0;
-                    ctx.shadowOffsetY = 0;
-                    ctx.fillStyle = color;
-                    ctx.lineCap = 'butt';
+                } else if (renderModeIndex === 4) { 
+                    // 5. КРЕСТИК (Быстрый штамп)
+                    ctx.drawImage(getCrossSprite(color), posX, posY);
                 }
-
             }); 
         }); 
     }
@@ -2449,6 +2455,7 @@ else if (renderModeIndex === 3) {
     
     // Вызываем покраску браузера
     updateBrowserColor();
+drawPreview(); // <--- ДОБАВИТЬ ЭТО, чтобы фон картинки перекрасился сразу
 }
         function saveProject() { if(!sourceImage) return; 
 const data = { palette: currentPalette, stockAssists: stockAssists, aiBase: aiBasePalette, hiddenRegions: Array.from(hiddenRegions), settings: { zoom: document.getElementById('zoom').value, contrast: document.getElementById('contrast').value, brightness: document.getElementById('brightness').value, saturation: document.getElementById('saturation').value, panX: document.getElementById('panX').value, panY: document.getElementById('panY').value, size: document.getElementById('setSize').value, cW: document.getElementById('customWidth').value, cH: document.getElementById('customHeight').value, cc: document.getElementById('colorCount').value, preset: document.getElementById('palettePreset').value, sharpness: document.getElementById('sharpness').value, smartBlur: document.getElementById('smartBlur').value, posterize: document.getElementById('posterize').value, usmRadius: document.getElementById('usmRadius').value }, img: sourceImage.src }; let name = prompt("Введите имя файла:", "photobrick_project"); if (name === null) return; if (!name) name = "photobrick_project"; if (!name.endsWith(".json")) name += ".json"; const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data)],{type:'application/json'})); a.download = name; a.click(); }
@@ -4217,10 +4224,21 @@ function executeImageSave() {
     tempCanvas.height = mainCanvas.height * qualityMult;
     const ctx = tempCanvas.getContext('2d');
     
+    // --- ИСПРАВЛЕНИЕ: ДОБАВЛЯЕМ ФОН КАК В ТЕМЕ ---
+    // Проверяем, какая тема сейчас активна (светлая или темная)
+    const isLight = document.body.getAttribute('data-theme') === 'light';
+    
+    // Подставляем цвета, которые используются у тебя в CSS (--modal-bg / --glass-bg)
+    ctx.fillStyle = isLight ? '#E9EEF6' : '#1e1e24';
+    
+    // Заливаем весь временный холст этим цветом
+    ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
+    // ----------------------------------------------
+    
     // ВАЖНО: Отключаем сглаживание, чтобы пиксели/лего оставались четкими при увеличении!
     ctx.imageSmoothingEnabled = false;
     
-    // Отрисовываем текущий вид с главного холста на увеличенный
+    // Отрисовываем текущий вид с главного холста поверх залитого фона
     ctx.drawImage(mainCanvas, 0, 0, tempCanvas.width, tempCanvas.height);
     
     // Получаем ссылку на картинку
